@@ -34,14 +34,16 @@ moves from "referenced" to "used" the moment code or configuration from it lands
   [gofumpt](https://github.com/mvdan/gofumpt), [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck),
   [sqlc](https://github.com/sqlc-dev/sqlc), [buf](https://github.com/bufbuild/buf) (Buf Technologies),
   [lefthook](https://github.com/evilmartians/lefthook) (Evil Martians),
-  [go-arch-lint](https://github.com/fe3dback/go-arch-lint) (fe3dback),
   [arch-go](https://github.com/arch-go/arch-go).
+- [golangci-lint-config](https://github.com/maratori/golangci-lint-config) by maratori (MIT): `.golangci.yml` is
+  adapted from it, with the license text kept in [LICENSES/](LICENSES/maratori-golangci-lint-config.txt).
+- Evaluated, not adopted: [go-arch-lint](https://github.com/fe3dback/go-arch-lint) by fe3dback. It informed the
+  choice of arch-go; thank you.
 
 **Referenced for design** (all MIT unless noted; no code copied yet)
 
 | Source | By | What shaped us |
 |---|---|---|
-| [golangci-lint-config](https://github.com/maratori/golangci-lint-config) | maratori | the strict, documented shape of a golangci-lint v2 config |
 | [cc-skills-golang](https://github.com/samber/cc-skills-golang) | samber | the set of Go topics worth an agent skill |
 | [goleak](https://github.com/uber-go/goleak) | Uber | goroutine-leak checks in `TestMain` |
 | [wild-workouts-go-ddd-example](https://github.com/ThreeDotsLabs/wild-workouts-go-ddd-example) | Three Dots Labs | DDD, clean architecture, and CQRS layering in Go |

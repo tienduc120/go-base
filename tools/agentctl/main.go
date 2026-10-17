@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/tienduc120/go-base/tools/internal/doctor"
@@ -41,17 +42,22 @@ func main() {
 		_, _ = fmt.Fprintln(os.Stderr, "agentctl:", err)
 		os.Exit(exitUsage)
 	}
-	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr, environment{cwd: cwd}))
+
+	// Ctrl-C cancels every child process the command started.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	code := run(ctx, os.Args[1:], os.Stdout, os.Stderr, environment{cwd: cwd})
+	stop()
+	os.Exit(code)
 }
 
-func run(args []string, stdout, stderr io.Writer, env environment) int {
+func run(ctx context.Context, args []string, stdout, stderr io.Writer, env environment) int {
 	if len(args) == 0 {
 		_, _ = fmt.Fprint(stderr, usage)
 		return exitUsage
 	}
 	switch args[0] {
 	case "doctor":
-		return runDoctor(args[1:], stdout, stderr, env)
+		return runDoctor(ctx, args[1:], stdout, stderr, env)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(stdout, usage)
 		return exitOK
@@ -61,7 +67,7 @@ func run(args []string, stdout, stderr io.Writer, env environment) int {
 	}
 }
 
-func runDoctor(args []string, stdout, stderr io.Writer, env environment) int {
+func runDoctor(ctx context.Context, args []string, stdout, stderr io.Writer, env environment) int {
 	fs := flag.NewFlagSet("doctor", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	asJSON := fs.Bool("json", false, "print machine-readable results")
@@ -84,16 +90,16 @@ func runDoctor(args []string, stdout, stderr io.Writer, env environment) int {
 	if runner == nil {
 		runner = doctor.ExecRunner{Dir: root}
 	}
-	results := doctor.Check(context.Background(), runner, doctor.DefaultTools(goVersion), toolTimeout)
+	results := doctor.Check(ctx, runner, doctor.DefaultTools(goVersion), toolTimeout)
 
 	if *asJSON {
 		enc := json.NewEncoder(stdout)
 		enc.SetIndent("", "  ")
-		if err := enc.Encode(results); err != nil {
-			_, _ = fmt.Fprintln(stderr, "agentctl doctor:", err)
-			return exitUsage
-		}
-	} else if err := doctor.Render(stdout, results); err != nil {
+		err = enc.Encode(results)
+	} else {
+		err = doctor.Render(stdout, results)
+	}
+	if err != nil {
 		_, _ = fmt.Fprintln(stderr, "agentctl doctor:", err)
 		return exitUsage
 	}

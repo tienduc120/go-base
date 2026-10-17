@@ -27,6 +27,13 @@ const (
 	StatusError    Status = "error"
 )
 
+// Column layout of the report table.
+const (
+	tabMinWidth = 0
+	tabWidth    = 4
+	tabPadding  = 2
+)
+
 // killGrace bounds how long a child holding our pipes open can delay Run after its context ends.
 const killGrace = 2 * time.Second
 
@@ -126,7 +133,7 @@ func checkOne(ctx context.Context, r Runner, tool Tool, timeout time.Duration) R
 	}
 	res.Found = m[len(m)-1]
 
-	cmp, err := compareVersions(res.Found, tool.Min)
+	cmp, err := CompareVersions(res.Found, tool.Min)
 	if err != nil {
 		res.Status = StatusError
 		res.Detail = err.Error()
@@ -151,7 +158,8 @@ func Failed(results []Result) bool {
 	return false
 }
 
-func compareVersions(a, b string) (int, error) {
+// CompareVersions orders two x.y.z versions; a missing part counts as zero and a leading v is ignored.
+func CompareVersions(a, b string) (int, error) {
 	pa, err := parseVersion(a)
 	if err != nil {
 		return 0, err
@@ -219,7 +227,7 @@ func FindRoot(start string) (string, error) {
 
 func Render(w io.Writer, results []Result) error {
 	var buf bytes.Buffer
-	tw := tabwriter.NewWriter(&buf, 0, 4, 2, ' ', 0)
+	tw := tabwriter.NewWriter(&buf, tabMinWidth, tabWidth, tabPadding, ' ', 0)
 	for _, r := range results {
 		name := r.Name
 		if !r.Required {
