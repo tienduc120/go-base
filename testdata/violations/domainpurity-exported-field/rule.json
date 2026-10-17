@@ -1,0 +1,5 @@
+{
+  "enforcer": "agentlint",
+  "contains": "exported field ID",
+  "doc": "Aggregates expose behaviour and accessors, not state."
+}

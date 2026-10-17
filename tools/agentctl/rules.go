@@ -38,7 +38,10 @@ func runRules(ctx context.Context, args []string, stdout, stderr io.Writer, env 
 	if runner == nil {
 		runner = proc.Exec{}
 	}
-	outcomes, err := rules.Run(ctx, rules.Deps{Runner: runner, FS: os.DirFS(root), GoVersion: goVersion})
+	outcomes, err := rules.Run(
+		ctx,
+		rules.Deps{Runner: runner, FS: os.DirFS(root), GoVersion: goVersion, RepoRoot: root},
+	)
 	if err != nil {
 		_, _ = fmt.Fprintln(stderr, "agentctl rules:", err)
 		switch {

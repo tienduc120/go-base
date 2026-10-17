@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"time"
@@ -13,8 +14,11 @@ import (
 	"github.com/tienduc120/go-base/tools/internal/proc"
 )
 
+const allPackages = "./..."
+
 const (
 	preflightTimeout = 3 * time.Minute
+	buildTimeout     = 3 * time.Minute
 	golangciTimeout  = 5 * time.Minute
 	archGoTimeout    = 2 * time.Minute
 
@@ -30,7 +34,12 @@ type Deps struct {
 	GoVersion string
 	// TempDir is where the staging module is created; empty uses the system default.
 	TempDir string
+	// RepoRoot is where the vettool is built from; only needed when a fixture uses agentlint.
+	RepoRoot string
 }
+
+// AgentlintPkg is the package built into a vet tool and pointed at the staged module.
+const AgentlintPkg = "github.com/tienduc120/go-base/tools/agentlint"
 
 // Run stages every fixture as one module, runs each enforcer a fixture names exactly once, and evaluates.
 // It returns an error, never an outcome, when an enforcer could not run: that must not read as "the rule fired".
@@ -56,7 +65,7 @@ func Run(ctx context.Context, deps Deps) ([]Outcome, error) {
 
 	findings := make(map[Enforcer][]Finding)
 	for _, enforcer := range enforcersUsed(fixtures) {
-		found, runErr := runEnforcer(ctx, deps.Runner, enforcer, stage)
+		found, runErr := runEnforcer(ctx, deps, enforcer, stage)
 		if runErr != nil {
 			return nil, runErr
 		}
@@ -65,17 +74,24 @@ func Run(ctx context.Context, deps Deps) ([]Outcome, error) {
 	return Evaluate(fixtures, findings), nil
 }
 
-// preflight type-checks the staged module. A linter that cannot load one package silently drops its
-// findings for every other package, which would turn a typo in one fixture into a wall of false failures.
+// preflight proves the staged module compiles, tests included. A linter that cannot load one package silently
+// drops its findings for every other package, which would turn a typo in one fixture into a wall of false
+// failures. Vet is off on purpose: a violation fixture may legitimately trip a vet check.
 func preflight(ctx context.Context, r proc.Runner, stage string) error {
-	res, err := r.Run(ctx, proc.Spec{Dir: stage, Name: "go", Args: []string{"vet", "./..."}, Timeout: preflightTimeout})
-	switch {
-	case err != nil:
-		return fmt.Errorf("%w: go vet: %w", ErrEnforcerFailed, err)
-	case res.TimedOut:
-		return fmt.Errorf("%w: go vet timed out", ErrEnforcerFailed)
-	case res.ExitCode != 0:
-		return fmt.Errorf("%w: %s", ErrFixtureBroken, tail(res.Output))
+	steps := [][]string{
+		{"build", allPackages},
+		{"test", "-vet=off", "-run=^$", "-count=1", allPackages},
+	}
+	for _, args := range steps {
+		res, err := r.Run(ctx, proc.Spec{Dir: stage, Name: "go", Args: args, Timeout: preflightTimeout})
+		switch {
+		case err != nil:
+			return fmt.Errorf("%w: go %s: %w", ErrEnforcerFailed, args[0], err)
+		case res.TimedOut:
+			return fmt.Errorf("%w: go %s timed out", ErrEnforcerFailed, args[0])
+		case res.ExitCode != 0:
+			return fmt.Errorf("%w: %s", ErrFixtureBroken, tail(res.Output))
+		}
 	}
 	return nil
 }
@@ -93,14 +109,14 @@ func enforcersUsed(fixtures []Fixture) []Enforcer {
 	return out
 }
 
-func runEnforcer(ctx context.Context, r proc.Runner, enforcer Enforcer, stage string) ([]Finding, error) {
+func runEnforcer(ctx context.Context, deps Deps, enforcer Enforcer, stage string) ([]Finding, error) {
 	switch enforcer {
 	case GolangciLint:
-		return runGolangci(ctx, r, stage)
+		return runGolangci(ctx, deps.Runner, stage)
 	case ArchGo:
-		return runArchGo(ctx, r, stage)
+		return runArchGo(ctx, deps.Runner, stage)
 	case Agentlint:
-		return nil, fmt.Errorf("%w: agentlint is not wired yet", ErrEnforcerFailed)
+		return runAgentlint(ctx, deps, stage)
 	}
 	return nil, fmt.Errorf("%w: unknown enforcer %q", ErrEnforcerFailed, enforcer)
 }
@@ -110,7 +126,7 @@ func runGolangci(ctx context.Context, r proc.Runner, stage string) ([]Finding, e
 	res, err := r.Run(ctx, proc.Spec{
 		Dir:     stage,
 		Name:    "golangci-lint",
-		Args:    []string{"run", "--output.json.path=" + report, "--show-stats=false", "./..."},
+		Args:    []string{"run", "--output.json.path=" + report, "--show-stats=false", allPackages},
 		Timeout: golangciTimeout,
 	})
 	if err = checkRun(GolangciLint, res, err); err != nil {
@@ -140,6 +156,50 @@ func runArchGo(ctx context.Context, r proc.Runner, stage string) ([]Finding, err
 		return nil, fmt.Errorf("%w: arch-go wrote no report: %w", ErrEnforcerFailed, err)
 	}
 	return ParseArchGo(data, stagedModule)
+}
+
+func runAgentlint(ctx context.Context, deps Deps, stage string) ([]Finding, error) {
+	bin := filepath.Join(stage, ".bin", "agentlint"+exeSuffix())
+
+	res, err := deps.Runner.Run(ctx, proc.Spec{
+		Dir:     deps.RepoRoot,
+		Name:    "go",
+		Args:    []string{"build", "-o", bin, AgentlintPkg},
+		Timeout: buildTimeout,
+	})
+	if err = checkBuild(res, err); err != nil {
+		return nil, err
+	}
+
+	res, err = deps.Runner.Run(ctx, proc.Spec{
+		Dir:     stage,
+		Name:    "go",
+		Args:    []string{"vet", "-vettool=" + bin, allPackages},
+		Timeout: archGoTimeout,
+	})
+	if err = checkRun(Agentlint, res, err); err != nil {
+		return nil, err
+	}
+	return ParseVet(res.Output), nil
+}
+
+func exeSuffix() string {
+	if runtime.GOOS == "windows" {
+		return ".exe"
+	}
+	return ""
+}
+
+func checkBuild(res proc.Result, err error) error {
+	switch {
+	case err != nil:
+		return fmt.Errorf("%w: build agentlint: %w", ErrEnforcerFailed, err)
+	case res.TimedOut:
+		return fmt.Errorf("%w: build agentlint timed out", ErrEnforcerFailed)
+	case res.ExitCode != 0:
+		return fmt.Errorf("%w: build agentlint: %s", ErrEnforcerFailed, tail(res.Output))
+	}
+	return nil
 }
 
 // checkRun accepts exit 0 (clean) and 1 (findings); anything else, or a cut-short run, is a failure to run.

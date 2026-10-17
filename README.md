@@ -29,7 +29,8 @@ moves from "referenced" to "used" the moment code or configuration from it lands
 
 **Used**
 
-- The Go team and community: the language, toolchain, standard library, and `go vet`.
+- The Go team and community: the language, toolchain, standard library, `go vet`, and
+  [golang.org/x/tools](https://pkg.go.dev/golang.org/x/tools) (the analysis framework behind our custom analyzers).
 - Developer tools we run, not copy: [golangci-lint](https://github.com/golangci/golangci-lint),
   [gofumpt](https://github.com/mvdan/gofumpt), [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck),
   [sqlc](https://github.com/sqlc-dev/sqlc), [buf](https://github.com/bufbuild/buf) (Buf Technologies),

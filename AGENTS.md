@@ -6,8 +6,8 @@ The decisions behind it: [docs/adr/](docs/adr/README.md).
 
 ## Status
 
-Phase 1 (static and architecture gates) in progress. Enforced today: the lint rules in `.golangci.yml` and the layer
-rules in `arch-go.yml`, each proven by a fixture. Everything marked "planned" below has no enforcer yet. Do not report
+Phase 1 (static and architecture gates) in progress. Enforced today: the lint rules in `.golangci.yml`, the layer
+rules in `arch-go.yml`, and the analyzers in `tools/analyzers`, each proven by a fixture. Everything marked "planned" below has no enforcer yet. Do not report
 a rule as enforced unless a tool in this repo checks it.
 
 ## Commands
@@ -16,6 +16,7 @@ Run from the repository root. There is no Make; `agentctl` is the command surfac
 
 | Need | Command |
 |---|---|
+| **Run the gates** (start here) | `go run ./tools/agentctl verify` (about 12s); `--full` adds govulncheck and `rules test` |
 | Check the toolchain and pinned tools | `go run ./tools/agentctl doctor` (`--json` for machines) |
 | Prove every rule fires on its fixture | `go run ./tools/agentctl rules test` |
 | Tests | `go test -race -timeout 120s -count=1 ./tools/...` |
@@ -65,8 +66,11 @@ Enforced by `.golangci.yml` (fixture per rule): no `context.Background`/`TODO` o
 logger; no mutable package state; HTTP requests carry a context; rows and response bodies are closed; no
 `SELECT *`; every `//nolint` names its linter and gives a reason.
 
+Enforced by the analyzers in `tools/analyzers` (run as `go vet -vettool`, fixture per rule): no `go` statement
+outside `platform/async`; domain types have no exported fields (opt out per type with
+`//agent:allow-exported-fields <reason>`), no struct tags, and never call `time.Now`/`Since`/`Until`.
+
 The Go compiler already forbids importing another service's `internal/` packages.
 
-Planned, not enforced yet: aggregates have unexported fields and `New` / `Restore` constructors; the domain never calls
-`time.Now`; no bare `go` statement outside one supervised helper; cross-aggregate effects go through events and an
-outbox; every list query has a limit; no query inside a loop.
+Planned, not enforced yet: aggregates have `New` / `Restore` constructors; cross-aggregate effects go through events
+and an outbox; every list query has a limit; no query inside a loop.

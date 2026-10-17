@@ -1,2 +1,5 @@
 # Local, uncommitted working notes and scratch
 .local/
+
+# agentctl logs and built helper binaries
+.agentctl/

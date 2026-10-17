@@ -1,0 +1,5 @@
+{
+  "enforcer": "agentlint",
+  "contains": "struct tag in a domain type",
+  "doc": "Serialization belongs in infrastructure or interfaces, not in the domain model."
+}

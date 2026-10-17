@@ -29,6 +29,7 @@ const usage = `usage: agentctl <command> [flags]
 commands:
   doctor [--json]   check the Go toolchain and the pinned developer tools
   rules test        prove every rule fires on its violation fixture
+  verify [--full]   run the gates; --full adds govulncheck and rules test
   help              show this text
 `
 
@@ -63,6 +64,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, env envir
 		return runDoctor(ctx, args[1:], stdout, stderr, env)
 	case "rules":
 		return runRules(ctx, args[1:], stdout, stderr, env)
+	case "verify":
+		return runVerify(ctx, args[1:], stdout, stderr, env)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(stdout, usage)
 		return exitOK

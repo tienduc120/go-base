@@ -5,9 +5,11 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
+	"testing/fstest"
 
 	"github.com/tienduc120/go-base/tools/internal/proc"
 	"github.com/tienduc120/go-base/tools/internal/rules"
@@ -171,5 +173,75 @@ func TestRunRejectsFixturesThatDoNotCompile(t *testing.T) {
 	}
 	if enforcerRan {
 		t.Error("enforcers must not run on a module that does not compile")
+	}
+}
+
+func agentlintDeps(t *testing.T) rules.Deps {
+	t.Helper()
+	fsys := repoFS()
+	delete(fsys, "testdata/violations/forbidigo-sleep/rule.json")
+	delete(fsys, "testdata/violations/forbidigo-sleep/lib/lib.go")
+	delete(fsys, "testdata/violations/arch-domain/rule.json")
+	delete(fsys, "testdata/violations/arch-domain/services/a/internal/domain/d.go")
+	fsys["testdata/violations/barego-x/rule.json"] = &fstest.MapFile{
+		Data: []byte(`{"enforcer":"agentlint","contains":"bare go statement"}`),
+	}
+	fsys["testdata/violations/barego-x/x.go"] = &fstest.MapFile{Data: []byte("package x\n")}
+	return rules.Deps{FS: fsys, GoVersion: "1.27.2", TempDir: t.TempDir(), RepoRoot: "/repo"}
+}
+
+func TestRunBuildsThenRunsAgentlintAsAVetTool(t *testing.T) {
+	t.Parallel()
+
+	deps := agentlintDeps(t)
+	var buildDir, vetDir, vetTool string
+	deps.Runner = &fakeProc{reply: func(spec proc.Spec) (proc.Result, error) {
+		switch {
+		case spec.Name == "go" && spec.Args[0] == "build" && slices.Contains(spec.Args, "-o"):
+			buildDir = spec.Dir
+			return proc.Result{}, nil
+		case spec.Name == "go" && spec.Args[0] == "vet" && len(spec.Args) > 2:
+			vetDir, vetTool = spec.Dir, spec.Args[1]
+			return proc.Result{
+				ExitCode: 1,
+				Output:   "# fixture.test/barego-x\nbarego-x/x.go:3:2: bare go statement: use platform/async\n",
+			}, nil
+		}
+		return proc.Result{}, nil
+	}}
+
+	outcomes, err := rules.Run(t.Context(), deps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, o := range outcomes {
+		if !o.Pass {
+			t.Errorf("%s: %s", o.ID, o.Detail)
+		}
+	}
+	if buildDir != "/repo" {
+		t.Errorf("the vettool must be built from the repo root, built in %q", buildDir)
+	}
+	if !strings.HasPrefix(vetTool, "-vettool=") {
+		t.Errorf("go vet must be pointed at the built tool, got %q", vetTool)
+	}
+	if vetDir == "/repo" || vetDir == "" {
+		t.Errorf("go vet must run in the staged module, ran in %q", vetDir)
+	}
+}
+
+func TestRunFailsWhenTheVetToolCannotBeBuilt(t *testing.T) {
+	t.Parallel()
+
+	deps := agentlintDeps(t)
+	deps.Runner = &fakeProc{reply: func(spec proc.Spec) (proc.Result, error) {
+		if spec.Name == "go" && spec.Args[0] == "build" && slices.Contains(spec.Args, "-o") {
+			return proc.Result{ExitCode: 1, Output: "agentlint: build failed"}, nil
+		}
+		return proc.Result{}, nil
+	}}
+
+	if _, err := rules.Run(t.Context(), deps); !errors.Is(err, rules.ErrEnforcerFailed) {
+		t.Fatalf("err = %v, want ErrEnforcerFailed", err)
 	}
 }

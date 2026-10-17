@@ -1,0 +1,5 @@
+{
+  "enforcer": "agentlint",
+  "contains": "domain reads the clock",
+  "doc": "The clock is a hidden input; the domain takes time as a parameter."
+}

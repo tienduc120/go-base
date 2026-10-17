@@ -5,6 +5,7 @@ One file per decision, numbered, never edited after acceptance (supersede it wit
 | # | Title | Status |
 |---|---|---|
 | [0001](0001-foundations.md) | Foundations | accepted |
+| [0002](0002-static-and-architecture-gates.md) | Static and architecture gates | accepted |
 
 Needs an ADR first: a new external dependency, a hosted service, a pinned major version moving, or a change to a
 published contract.
