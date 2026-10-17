@@ -1,0 +1,5 @@
+{
+  "enforcer": "arch-go",
+  "contains": "internal/infrastructure",
+  "doc": "Delivery never reaches an adapter directly."
+}

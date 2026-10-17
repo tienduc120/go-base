@@ -1,0 +1,5 @@
+{
+  "enforcer": "arch-go",
+  "contains": "context",
+  "doc": "The domain takes values, not cancellation scopes; ports live in application."
+}

@@ -1,0 +1,5 @@
+{
+  "enforcer": "golangci-lint",
+  "contains": "bodyclose",
+  "doc": "An unread, unclosed response body leaks the connection."
+}

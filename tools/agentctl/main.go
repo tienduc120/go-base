@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/tienduc120/go-base/tools/internal/doctor"
+	"github.com/tienduc120/go-base/tools/internal/proc"
 )
 
 // Exit codes: callers (hooks, CI) branch on these, so they are part of the interface.
@@ -27,13 +28,15 @@ const usage = `usage: agentctl <command> [flags]
 
 commands:
   doctor [--json]   check the Go toolchain and the pinned developer tools
+  rules test        prove every rule fires on its violation fixture
   help              show this text
 `
 
 type environment struct {
-	// runner is nil in production; tests inject a fake.
-	runner doctor.Runner
-	cwd    string
+	// Both runners are nil in production; tests inject fakes.
+	runner     doctor.Runner
+	procRunner proc.Runner
+	cwd        string
 }
 
 func main() {
@@ -58,6 +61,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, env envir
 	switch args[0] {
 	case "doctor":
 		return runDoctor(ctx, args[1:], stdout, stderr, env)
+	case "rules":
+		return runRules(ctx, args[1:], stdout, stderr, env)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(stdout, usage)
 		return exitOK

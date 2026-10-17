@@ -1,0 +1,5 @@
+{
+  "enforcer": "golangci-lint",
+  "contains": "`fmt.Println`",
+  "doc": "Output goes to an injected writer or slog, never straight to stdout."
+}

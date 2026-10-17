@@ -1,0 +1,5 @@
+{
+  "enforcer": "golangci-lint",
+  "contains": "log/slog",
+  "doc": "Structured logging only; the old log package is banned outside main."
+}

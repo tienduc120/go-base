@@ -1,0 +1,5 @@
+{
+  "enforcer": "golangci-lint",
+  "contains": "sqlclosecheck",
+  "doc": "An unclosed result set holds its connection until the pool runs dry."
+}

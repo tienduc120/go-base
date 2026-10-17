@@ -1,0 +1,92 @@
+# Layer rules for strict DDD and clean architecture. Protected: never loosen a rule to make a change pass.
+# Package patterns are import paths with "." as separator, so "**.internal.domain.**" matches any service.
+version: 1
+threshold:
+  compliance: 100
+  coverage: 0
+
+dependenciesRules:
+  # The domain is pure: no I/O, no context, no framework. Time enters as a value, never from the clock.
+  - package: "**.internal.domain.**"
+    shouldOnlyDependsOn:
+      internal:
+        - "**.internal.domain.**"
+      standard:
+        - errors
+        - fmt
+        - strings
+        - strconv
+        - sort
+        - slices
+        - maps
+        - cmp
+        - iter
+        - math
+        - math/big
+        - unicode
+        - unicode/utf8
+        - bytes
+        - time
+        - regexp
+
+  # Use cases orchestrate the domain and declare the ports adapters implement.
+  - package: "**.internal.application.**"
+    shouldOnlyDependsOn:
+      internal:
+        - "**.internal.domain.**"
+        - "**.internal.application.**"
+        - "**.platform.**"
+        - "**.contracts.**"
+      standard:
+        - context
+        - errors
+        - fmt
+        - strings
+        - strconv
+        - sort
+        - slices
+        - maps
+        - cmp
+        - iter
+        - math
+        - time
+        - sync
+        - sync/atomic
+        - log/slog
+        - regexp
+        - bytes
+        - unicode
+        - unicode/utf8
+
+  # Adapters depend inward and never on the delivery layer.
+  - package: "**.internal.infrastructure.**"
+    shouldOnlyDependsOn:
+      internal:
+        - "**.internal.domain.**"
+        - "**.internal.application.**"
+        - "**.internal.infrastructure.**"
+        - "**.platform.**"
+        - "**.contracts.**"
+
+  # Delivery talks to use cases only; domain types stay behind the application boundary.
+  - package: "**.internal.interfaces.**"
+    shouldOnlyDependsOn:
+      internal:
+        - "**.internal.application.**"
+        - "**.internal.interfaces.**"
+        - "**.platform.**"
+        - "**.contracts.**"
+
+  # Shared technical code knows nothing of any service.
+  - package: "**.platform.**"
+    shouldNotDependsOn:
+      internal:
+        - "**.services.**"
+        - "**.contracts.**"
+
+  # The published language depends on nothing of ours.
+  - package: "**.contracts.**"
+    shouldNotDependsOn:
+      internal:
+        - "**.services.**"
+        - "**.platform.**"

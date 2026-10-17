@@ -1,0 +1,5 @@
+{
+  "enforcer": "golangci-lint",
+  "contains": "sloglint",
+  "doc": "Loggers are injected, not reached through the package-level default."
+}

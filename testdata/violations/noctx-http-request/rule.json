@@ -1,0 +1,5 @@
+{
+  "enforcer": "golangci-lint",
+  "contains": "noctx",
+  "doc": "An outbound request without a context cannot be cancelled or given a deadline."
+}

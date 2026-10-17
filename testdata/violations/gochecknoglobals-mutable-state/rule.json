@@ -1,0 +1,5 @@
+{
+  "enforcer": "golangci-lint",
+  "contains": "gochecknoglobals",
+  "doc": "Package-level mutable state is hidden coupling and a data race waiting to happen."
+}

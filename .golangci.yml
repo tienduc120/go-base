@@ -3,8 +3,11 @@
 
 version: "2"
 
+# Complete reporting: an agent that fixes one finding must not discover the next one a run later.
 issues:
-  max-same-issues: 50
+  uniq-by-line: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
 
 formatters:
   enable:
@@ -222,7 +225,7 @@ linters:
       os-temp-dir: true
 
   exclusions:
-    warn-unused: true
+    warn-unused: false
     presets:
       - std-error-handling
       - common-false-positives

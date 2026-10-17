@@ -1,0 +1,5 @@
+{
+  "enforcer": "golangci-lint",
+  "contains": "`time.Sleep`",
+  "doc": "Sleeping ignores cancellation and hides races; wait on a timer or context."
+}

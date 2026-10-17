@@ -1,0 +1,5 @@
+{
+  "enforcer": "arch-go",
+  "contains": "internal/application",
+  "doc": "The domain depends on nothing above it."
+}

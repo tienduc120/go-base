@@ -1,0 +1,5 @@
+{
+  "enforcer": "golangci-lint",
+  "contains": "unqueryvet",
+  "doc": "Every query names its columns so a schema change cannot silently change what code receives."
+}

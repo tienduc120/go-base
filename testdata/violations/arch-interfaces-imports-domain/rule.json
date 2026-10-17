@@ -1,0 +1,5 @@
+{
+  "enforcer": "arch-go",
+  "contains": "internal/domain",
+  "doc": "Delivery talks to use cases; domain types stay behind the application boundary."
+}

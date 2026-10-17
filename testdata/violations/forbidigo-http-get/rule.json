@@ -1,0 +1,5 @@
+{
+  "enforcer": "golangci-lint",
+  "contains": "`http.Get`",
+  "doc": "Package-level http helpers use a client with no timeout."
+}

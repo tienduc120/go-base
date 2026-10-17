@@ -1,0 +1,5 @@
+{
+  "enforcer": "arch-go",
+  "contains": "internal/interfaces",
+  "doc": "Adapters do not depend on the delivery layer."
+}

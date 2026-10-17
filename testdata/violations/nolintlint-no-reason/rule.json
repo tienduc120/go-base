@@ -1,0 +1,5 @@
+{
+  "enforcer": "golangci-lint",
+  "contains": "should provide explanation",
+  "doc": "A suppression must say why, so it can be judged and expired later."
+}

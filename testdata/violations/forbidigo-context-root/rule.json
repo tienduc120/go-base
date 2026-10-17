@@ -1,0 +1,5 @@
+{
+  "enforcer": "golangci-lint",
+  "contains": "derive from the caller's context",
+  "doc": "Only a main package creates a root context; the alias proves matching survives import renames."
+}
