@@ -77,3 +77,17 @@ The Go compiler already forbids importing another service's `internal/` packages
 
 Planned, not enforced yet: aggregates have `New` / `Restore` constructors; cross-aggregate effects go through events
 and an outbox; every list query has a limit; no query inside a loop.
+
+## Things that will surprise you
+
+Grow this by correction: when any tool gets something wrong, add the line.
+
+- **golangci-lint dedups per line by default**; here `uniq-by-line` is off, so one line can carry several findings.
+  If a rule seems silent, check that it is not hidden behind another finding on the same line.
+- **One fixture that does not compile silences every finding** from a linter, so `rules test` type-checks the staged
+  module first and names the broken fixture.
+- **Fixture import paths are relative to the staged module `fixture.test/<fixture-id>/...`**, not this repository's
+  module path.
+- **On Windows, Python's `write_text` writes CRLF** and `.gitattributes` forces LF; write bytes with explicit `\n`.
+  Shell heredocs can also swallow double backslashes: write files that contain escapes with the editor tools.
+- **`rm` with a variable or wildcard target is refused by the sandbox**; remove by literal path.
