@@ -30,6 +30,7 @@ commands:
   doctor [--json]   check the Go toolchain and the pinned developer tools
   rules test        prove every rule fires on its violation fixture
   verify [--full]   run the gates; --full adds govulncheck and rules test
+  commitmsg <file>  check a commit message (called by the commit-msg hook)
   help              show this text
 `
 
@@ -66,6 +67,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, env envir
 		return runRules(ctx, args[1:], stdout, stderr, env)
 	case "verify":
 		return runVerify(ctx, args[1:], stdout, stderr, env)
+	case "commitmsg":
+		return runCommitmsg(args[1:], stderr)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(stdout, usage)
 		return exitOK

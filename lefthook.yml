@@ -1,0 +1,15 @@
+# Git hooks. Protected: never bypass with --no-verify, and never loosen a hook to make a change pass.
+pre-commit:
+  jobs:
+    - name: verify
+      run: go run ./tools/agentctl verify
+
+commit-msg:
+  jobs:
+    - name: commit message
+      run: go run ./tools/agentctl commitmsg {1}
+
+pre-push:
+  jobs:
+    - name: verify full
+      run: go run ./tools/agentctl verify --full

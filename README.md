@@ -12,7 +12,8 @@ You need Go (the version in `go.mod` is fetched automatically), Git, and Docker.
 
 ```sh
 go run ./tools/agentctl doctor     # checks the toolchain and pinned tools, prints install hints
-go test -race -timeout 120s ./tools/...
+go run ./tools/agentctl verify     # runs every gate (about 12s); --full adds govulncheck and the rules proof
+lefthook install                   # run the gates on every commit and push
 ```
 
 There is no Make. `agentctl` is the single command surface.

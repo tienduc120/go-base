@@ -6,7 +6,7 @@ The decisions behind it: [docs/adr/](docs/adr/README.md).
 
 ## Status
 
-Phase 1 (static and architecture gates) in progress. Enforced today: the lint rules in `.golangci.yml`, the layer
+Phase 1 (static and architecture gates) is done. Enforced today: the lint rules in `.golangci.yml`, the layer
 rules in `arch-go.yml`, and the analyzers in `tools/analyzers`, each proven by a fixture. Everything marked "planned" below has no enforcer yet. Do not report
 a rule as enforced unless a tool in this repo checks it.
 
@@ -17,6 +17,8 @@ Run from the repository root. There is no Make; `agentctl` is the command surfac
 | Need | Command |
 |---|---|
 | **Run the gates** (start here) | `go run ./tools/agentctl verify` (about 12s); `--full` adds govulncheck and `rules test` |
+| Check a commit message | `go run ./tools/agentctl commitmsg <file>` (the commit-msg hook calls it) |
+| Install the git hooks (once per clone) | `lefthook install` |
 | Check the toolchain and pinned tools | `go run ./tools/agentctl doctor` (`--json` for machines) |
 | Prove every rule fires on its fixture | `go run ./tools/agentctl rules test` |
 | Tests | `go test -race -timeout 120s -count=1 ./tools/...` |
@@ -36,7 +38,8 @@ Tool dependencies must never enter the root module.
 - **Every rule has a fixture.** A new or changed rule gets a violation fixture in `testdata/violations/<id>/` (with a
   `rule.json` naming the enforcer and the text it must report) and `rules test` must stay green. The compliant twin in
   `testdata/clean/` must stay free of findings.
-- **Never bypass git hooks** (`--no-verify`).
+- **Never bypass git hooks** (`--no-verify`). `lefthook.yml` runs `verify` before each commit, `commitmsg` on the
+  message, and `verify --full` before a push.
 - **Anything that can run long gets a timeout.** Tests always run with `-timeout`; servers never run in the
   foreground of an agent session.
 - **Do not commit `.local/`** (gitignored scratch and notes) and do not install software system-wide without asking.
