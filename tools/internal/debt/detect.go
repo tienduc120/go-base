@@ -37,7 +37,7 @@ func skippedDir(name string) bool {
 		slices.Contains([]string{"testdata", "vendor", "node_modules"}, name)
 }
 
-// Scan reads every Go file under root and returns the debt in it, worst first.
+// Scan reads every Go file and every SQL query file under root and returns the debt in them, worst first.
 func Scan(root string, opts Options) ([]Item, error) {
 	opts = opts.withDefaults()
 
@@ -48,10 +48,14 @@ func Scan(root string, opts Options) ([]Item, error) {
 			return err
 		case d.IsDir() && p != root && skippedDir(d.Name()):
 			return fs.SkipDir
-		case d.IsDir() || !strings.HasSuffix(d.Name(), ".go"):
+		case d.IsDir() || !scannable(d.Name()):
 			return nil
 		}
-		found, scanErr := scanFile(root, p, opts)
+		scan := scanFile
+		if strings.HasSuffix(d.Name(), ".sql") {
+			scan = func(root, path string, _ Options) ([]Item, error) { return scanSQL(root, path) }
+		}
+		found, scanErr := scan(root, p, opts)
 		items = append(items, found...)
 		return scanErr
 	})
@@ -63,6 +67,10 @@ func Scan(root string, opts Options) ([]Item, error) {
 	}
 	Rank(items)
 	return items, nil
+}
+
+func scannable(name string) bool {
+	return strings.HasSuffix(name, ".go") || strings.HasSuffix(name, ".sql")
 }
 
 func relPath(root, p string) string {

@@ -36,6 +36,7 @@ commands:
   debt scan|confirm|next|baseline|check|prune  find, triage, and pay off the debt the gates allow
   perf analyze|capture  find which function owns the time, memory, locks, or goroutines (pprof)
   new service <name> [--aggregate Name]  create a layered service that already passes every gate
+  db check [--no-plan] [service...]  judge a service's SQL: query rules, and each query's plan on a throwaway Postgres
   hook <event>      guard for agent tool calls: pre-edit or pre-bash (reads the tool call as JSON on stdin)
   help              show this text
 `
@@ -97,6 +98,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, env envir
 		return runDebt(ctx, args[1:], stdout, stderr, env)
 	case "new":
 		return runNew(args[1:], stdout, stderr, env)
+	case "db":
+		return runDB(ctx, args[1:], stdout, stderr, env)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(stdout, usage)
 		return exitOK

@@ -14,5 +14,6 @@ One file per decision, numbered, never edited after acceptance (supersede it wit
 | [0008](0008-technical-debt-loop.md) | The technical-debt loop | accepted |
 | [0009](0009-supervised-goroutines-and-the-debug-listener.md) | Supervised goroutines and the debug listener | accepted |
 | [0010](0010-service-template.md) | The service template | accepted |
+| [0011](0011-query-gates.md) | Query gates | accepted |
 
 Needs an ADR first: a new external dependency, a hosted service, a pinned major version moving, or a change to a published contract.

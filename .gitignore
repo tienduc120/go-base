@@ -4,5 +4,8 @@
 # agentctl logs and built helper binaries
 .agentctl/
 
+# Scratch sqlc output that agentctl db check writes beside a service's queries
+.dbcheck/
+
 # Personal Claude Code settings
 .claude/settings.local.json
