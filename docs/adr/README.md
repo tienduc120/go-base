@@ -10,5 +10,6 @@ One file per decision, numbered, never edited after acceptance (supersede it wit
 | [0004](0004-bounded-command-runs.md)          | Bounded command runs          | accepted |
 | [0005](0005-agent-guard.md) | Agent guard | accepted |
 | [0006](0006-pprof-diagnosis.md) | pprof diagnosis for agents | accepted |
+| [0007](0007-goroutine-leak-checks.md) | Goroutine-leak checks in tests | accepted |
 
 Needs an ADR first: a new external dependency, a hosted service, a pinned major version moving, or a change to a published contract.

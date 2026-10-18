@@ -12,6 +12,7 @@ Only MIT, BSD, and Apache-2.0 material is brought in. For each item keep the ups
 
 - `golang.org/x/tools` (BSD-3-Clause), the analysis framework behind our analyzers.
 - `github.com/google/pprof` (Apache-2.0), the profile parser and diff behind `agentctl perf`.
+- `go.uber.org/goleak` (MIT, Copyright (c) 2018 Uber Technologies, Inc.), the goroutine-leak check in `TestMain`.
 
 Both are dependencies of the `tools` module only, never of a service.
 
