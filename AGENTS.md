@@ -6,7 +6,7 @@ The decisions behind it: [docs/adr/](docs/adr/README.md).
 
 ## Status
 
-Phase 1 (static and architecture gates) is done, and the bounded-command runner (`agentctl run`) from phase 4 is in. Enforced today: the lint rules in `.golangci.yml`, the layer rules in `arch-go.yml`, and the analyzers in `tools/analyzers`, each proven by a fixture, plus Markdown style (one paragraph per line). The agent guard (below) is in. The pprof diagnosis loop (`agentctl perf`, ADR-0006) is in. Goroutine-leak checks in tests (ADR-0007) are in. The technical-debt loop (`agentctl debt`, ADR-0008) is in; its ratchet step is ready but not yet run by `verify` (see the ADR). Not built yet: the database gates, a scenario runner that drives load for you, and a service template. Everything marked "planned" below has no enforcer yet. Do not report a rule as enforced unless a tool in this repo checks it.
+Phase 1 (static and architecture gates) is done, and the bounded-command runner (`agentctl run`) from phase 4 is in. Enforced today: the lint rules in `.golangci.yml`, the layer rules in `arch-go.yml`, and the analyzers in `tools/analyzers`, each proven by a fixture, plus Markdown style (one paragraph per line). The agent guard (below) is in. The pprof diagnosis loop (`agentctl perf`, ADR-0006) is in. Goroutine-leak checks in tests (ADR-0007) are in. The technical-debt loop (`agentctl debt`, ADR-0008) is in, and `verify` runs its ratchet. The service template (`agentctl new service`, ADR-0010) is in, with `services/example` as its checked witness. Not built yet: the database gates and a scenario runner that drives load for you. Everything marked "planned" below has no enforcer yet. Do not report a rule as enforced unless a tool in this repo checks it.
 
 ## How to work
 
@@ -26,17 +26,19 @@ Run from the repository root. There is no Make; `agentctl` is the command surfac
 | Prove every rule fires on its fixture                             | `go run ./tools/agentctl rules test`                                                         |
 | Find what owns the time, memory, locks, or goroutines | `go run ./tools/agentctl perf capture --url http://127.0.0.1:<pprof port>` while load runs; `perf analyze [--base before.pprof] <file>` for one profile (skill: `perf-diagnose`) |
 | Find, triage, and pay off the debt the gates allow | `go run ./tools/agentctl debt scan`, then `debt confirm <id>`, `debt next`, `debt check` (skill: `debt-recovery`) |
+| Start a new service | `go run ./tools/agentctl new service <name> --aggregate <Name>` (skill: `new-service`); never create `services/<name>` by hand |
 | Run anything that could hang                                      | `go run ./tools/agentctl run -- <command> [args...]` (`--timeout`, `--idle`, `--name`) |
 | Tests (the TDD loop)                                              | `go test -race -timeout 120s -count=1 ./tools/<package>/`                                    |
 | Format Go (apply)                                                 | `cd tools && golangci-lint fmt ./...`                                                        |
 | Format Markdown (apply)                                           | `go run ./tools/agentctl fmt md [file...]`                                                   |
 | Layer rules on real code                                          | `arch-go` (reads `arch-go.yml` from the module root)                                       |
 
-Two modules joined by `go.work`: the root module (services, platform, contracts, none yet) and `tools/` (agentctl). Tool dependencies must never enter the root module.
+Two modules joined by `go.work`: the root module (services, platform, contracts) and `tools/` (agentctl). Tool dependencies must never enter the root module.
 
 ## Hard rules
 
 - **Test first.** No production code without a test that failed first, for the right reason.
+- **Start a service with the generator.** `agentctl new service` gives a layout that already passes every gate; `services/example` is its generated witness, so change the templates in `tools/internal/scaffold/templates` and regenerate it, never edit it (ADR-0010).
 - **Start goroutines only through `platform/async`** (`async.Run`): it cancels, waits, and turns a panic into an error. A service serves pprof on a loopback-only port with `platform/debugserver`, never on the serving port (ADR-0009).
 - **A package that starts goroutines, subprocesses, or servers checks for leaks.** Its `TestMain` calls `goleak.VerifyTestMain(m)` (ADR-0007), so a test that leaves something running fails the package. Never `time.Sleep` in a test.
 - **New debt is triaged, not hidden.** A `//nolint`, a TODO with no reference, or a function near the complexity limit is debt: fix the cause, or ask the user to accept it with a reason and an expiry. A `refactor:` commit may only add tests, never edit one (the commit-msg hook enforces it). Follow the `debt-recovery` skill.
@@ -92,3 +94,4 @@ Grow this by correction: when any tool gets something wrong, add the line.
 - **Fixture import paths are relative to the staged module `fixture.test/<fixture-id>/...`**, not this repository's module path.
 - **On Windows, Python's `write_text` writes CRLF** and `.gitattributes` forces LF; write bytes with explicit `\n`. Shell heredocs can also swallow double backslashes: write files that contain escapes with the editor tools.
 - **`rm` with a variable or wildcard target is refused by the sandbox**; remove by literal path.
+- **Never name a package `httpapi`.** On the maintainer's Windows machine Bitdefender quarantines a test binary called `httpapi.test.exe` (a heuristic detection, `Gen:Variant.Yogi`), and `go test` fails with `Access is denied`. The binary's name is the trigger, not its content; the delivery package is `interfaces/rest`. If a test build fails like this, rename the package rather than rebuilding in a loop.

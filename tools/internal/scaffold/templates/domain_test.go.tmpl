@@ -1,0 +1,41 @@
+package domain_test
+
+import (
+	"errors"
+	"testing"
+	"time"
+
+	"[[.Module]]/services/[[.Service]]/internal/domain"
+)
+
+func TestNew[[.Aggregate]]IDRejectsAnEmptyValue(t *testing.T) {
+	t.Parallel()
+
+	if _, err := domain.New[[.Aggregate]]ID(""); !errors.Is(err, domain.ErrEmptyID) {
+		t.Errorf("err = %v, want ErrEmptyID", err)
+	}
+}
+
+func TestRegister[[.Aggregate]]RejectsABlankName(t *testing.T) {
+	t.Parallel()
+
+	for _, name := range []string{"", "   ", "\t"} {
+		_, err := domain.Register[[.Aggregate]]("id-1", name, time.Time{})
+		if !errors.Is(err, domain.ErrEmptyName) {
+			t.Errorf("name %q: err = %v, want ErrEmptyName", name, err)
+		}
+	}
+}
+
+func TestRegister[[.Aggregate]]KeepsWhatItWasGiven(t *testing.T) {
+	t.Parallel()
+
+	createdAt := time.Date(2026, time.October, 18, 0, 0, 0, 0, time.UTC)
+	got, err := domain.Register[[.Aggregate]]("id-1", "  first  ", createdAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ID() != "id-1" || got.Name() != "first" || !got.CreatedAt().Equal(createdAt) {
+		t.Errorf("[[.AggregateWords]] does not hold the values it was registered with: %+v", got)
+	}
+}

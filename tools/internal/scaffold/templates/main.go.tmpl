@@ -1,0 +1,92 @@
+// Command [[.Service]]-api serves the [[.Service]] service over HTTP, with a loopback-only debug listener beside it.
+package main
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"[[.Module]]/platform/async"
+	"[[.Module]]/platform/clock"
+	"[[.Module]]/platform/debugserver"
+	"[[.Module]]/platform/httpserver"
+	"[[.Module]]/services/[[.Service]]/internal/application"
+	"[[.Module]]/services/[[.Service]]/internal/infrastructure/memory"
+	"[[.Module]]/services/[[.Service]]/internal/interfaces/rest"
+)
+
+const (
+	defaultAddr      = ":8080"
+	defaultDebugAddr = "127.0.0.1:6060"
+)
+
+type config struct {
+	addr      string
+	debugAddr string
+}
+
+func configFrom(getenv func(string) string) config {
+	return config{
+		addr:      valueOr(getenv("ADDR"), defaultAddr),
+		debugAddr: valueOr(getenv("DEBUG_ADDR"), defaultDebugAddr),
+	}
+}
+
+func valueOr(value, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func main() { os.Exit(runMain()) }
+
+func runMain() int {
+	// Kubernetes sends SIGTERM, not an interrupt, before it kills a pod.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	svc, err := newService(ctx, configFrom(os.Getenv))
+	if err != nil {
+		logger.ErrorContext(ctx, "start", "error", err)
+		return 1
+	}
+	logger.InfoContext(ctx, "listening", "addr", svc.api.Addr(), "debug_addr", svc.debug.Addr())
+	if err = svc.run(ctx); err != nil {
+		logger.ErrorContext(ctx, "stopped", "error", err)
+		return 1
+	}
+	return 0
+}
+
+// service owns both listeners. They are bound before anything runs, so a bad or taken address fails at startup.
+type service struct {
+	api   *httpserver.Server
+	debug *debugserver.Server
+}
+
+func newService(ctx context.Context, cfg config) (*service, error) {
+	// Swap the in-memory repository for a real adapter here when storage arrives; nothing else changes.
+	creator := application.NewCreate[[.Aggregate]](memory.New[[.Aggregate]]Repository(), clock.System{})
+
+	api, err := httpserver.New(ctx, cfg.addr, rest.NewHandler(creator), httpserver.DefaultTimeouts())
+	if err != nil {
+		return nil, fmt.Errorf("api listener: %w", err)
+	}
+	debug, err := debugserver.New(ctx, cfg.debugAddr)
+	if err != nil {
+		_ = api.Close()
+		return nil, fmt.Errorf("debug listener: %w", err)
+	}
+	debugserver.EnableContentionProfiles()
+	return &service{api: api, debug: debug}, nil
+}
+
+// run serves until ctx ends or either server fails, and a failure of one stops the other.
+func (s *service) run(ctx context.Context) error {
+	return async.Run(ctx, s.api.Run, s.debug.Run)
+}

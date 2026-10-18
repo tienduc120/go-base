@@ -1,0 +1,89 @@
+package main
+
+import (
+	"context"
+	"io"
+	"net/http"
+	"strings"
+	"testing"
+	"time"
+
+	"go.uber.org/goleak"
+)
+
+func TestMain(m *testing.M) {
+	goleak.VerifyTestMain(m)
+}
+
+func TestConfigFromUsesDefaultsAndOverrides(t *testing.T) {
+	t.Parallel()
+
+	got := configFrom(func(string) string { return "" })
+	if got.addr != defaultAddr || got.debugAddr != defaultDebugAddr {
+		t.Errorf("empty environment gave %+v, want the defaults", got)
+	}
+
+	env := map[string]string{"ADDR": ":9000", "DEBUG_ADDR": "127.0.0.1:9001"}
+	got = configFrom(func(key string) string { return env[key] })
+	if got.addr != ":9000" || got.debugAddr != "127.0.0.1:9001" {
+		t.Errorf("environment gave %+v, want the overrides", got)
+	}
+}
+
+func TestNewServiceRefusesAPublicDebugAddress(t *testing.T) {
+	t.Parallel()
+
+	svc, err := newService(t.Context(), config{addr: "127.0.0.1:0", debugAddr: "0.0.0.0:0"})
+	if err == nil {
+		_ = svc.api.Close()
+		_ = svc.debug.Close()
+		t.Error("profiling endpoints must never listen beyond loopback")
+	}
+}
+
+func request(t *testing.T, method, url, body string) (int, string) {
+	t.Helper()
+	req, err := http.NewRequestWithContext(t.Context(), method, url, strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := &http.Client{Timeout: 5 * time.Second, Transport: &http.Transport{DisableKeepAlives: true}}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	out, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return resp.StatusCode, string(out)
+}
+
+func TestServiceServesBothListenersAndStopsWhenItsContextEnds(t *testing.T) {
+	t.Parallel()
+
+	svc, err := newService(t.Context(), config{addr: "127.0.0.1:0", debugAddr: "127.0.0.1:0"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() { done <- svc.run(ctx) }()
+
+	code, body := request(t, http.MethodPost, "http://"+svc.api.Addr()+"/[[.Route]]", `{"id":"id-1","name":"first"}`)
+	if code != http.StatusCreated {
+		t.Errorf("create: %d %s, want 201", code, body)
+	}
+	if code, body = request(t, http.MethodGet, "http://"+svc.debug.Addr()+"/debug/pprof/", ""); code != http.StatusOK {
+		t.Errorf("debug listener: %d %s, want 200", code, body)
+	}
+	if code, _ = request(t, http.MethodGet, "http://"+svc.api.Addr()+"/debug/pprof/", ""); code != http.StatusNotFound {
+		t.Errorf("profiles on the API port: %d, want 404: they belong on the debug listener only", code)
+	}
+
+	cancel()
+	if err = <-done; err != nil {
+		t.Errorf("a context that ends is a clean shutdown, got %v", err)
+	}
+}

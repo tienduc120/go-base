@@ -1,0 +1,60 @@
+// Package application orchestrates the [[.Service]] use cases and declares the ports their adapters implement.
+package application
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
+	"[[.Module]]/services/[[.Service]]/internal/domain"
+)
+
+var ErrInvalidCommand = errors.New("invalid command")
+
+// [[.Aggregate]]Repository is a port: the application declares it and infrastructure implements it.
+type [[.Aggregate]]Repository interface {
+	Save(ctx context.Context, agg domain.[[.Aggregate]]) error
+}
+
+type Clock interface {
+	Now() time.Time
+}
+
+type Create[[.Aggregate]]Command struct {
+	ID   string
+	Name string
+}
+
+type Create[[.Aggregate]]Result struct {
+	ID string
+}
+
+type Create[[.Aggregate]] struct {
+	repo  [[.Aggregate]]Repository
+	clock Clock
+}
+
+func NewCreate[[.Aggregate]](repo [[.Aggregate]]Repository, clock Clock) *Create[[.Aggregate]] {
+	return &Create[[.Aggregate]]{repo: repo, clock: clock}
+}
+
+func (u *Create[[.Aggregate]]) Execute(
+	ctx context.Context,
+	cmd Create[[.Aggregate]]Command,
+) (Create[[.Aggregate]]Result, error) {
+	id, err := domain.New[[.Aggregate]]ID(cmd.ID)
+	if err != nil {
+		return Create[[.Aggregate]]Result{}, fmt.Errorf("%w: %w", ErrInvalidCommand, err)
+	}
+
+	agg, err := domain.Register[[.Aggregate]](id, cmd.Name, u.clock.Now())
+	if err != nil {
+		return Create[[.Aggregate]]Result{}, fmt.Errorf("%w: %w", ErrInvalidCommand, err)
+	}
+
+	if err = u.repo.Save(ctx, agg); err != nil {
+		return Create[[.Aggregate]]Result{}, fmt.Errorf("save [[.AggregateWords]]: %w", err)
+	}
+	return Create[[.Aggregate]]Result{ID: string(id)}, nil
+}

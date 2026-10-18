@@ -7,13 +7,14 @@ package debugserver
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"net/http/pprof"
 	"runtime"
 	"time"
+
+	"github.com/tienduc120/go-base/platform/httpserver"
 )
 
 const (
@@ -30,10 +31,9 @@ const (
 	blockRateNanos = 1000
 )
 
-// Server serves the profiling endpoints.
+// Server serves the profiling endpoints; Addr, Close, and Run come from the HTTP server underneath.
 type Server struct {
-	srv *http.Server
-	ln  net.Listener
+	*httpserver.Server
 }
 
 // New validates addr and binds it, so the caller learns about a bad or taken address at startup and, with port 0, can
@@ -41,11 +41,6 @@ type Server struct {
 func New(ctx context.Context, addr string) (*Server, error) {
 	if err := requireLoopback(addr); err != nil {
 		return nil, err
-	}
-	var lc net.ListenConfig
-	ln, err := lc.Listen(ctx, "tcp", addr)
-	if err != nil {
-		return nil, fmt.Errorf("debug server: %w", err)
 	}
 
 	mux := http.NewServeMux()
@@ -55,16 +50,17 @@ func New(ctx context.Context, addr string) (*Server, error) {
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 
-	return &Server{
-		ln: ln,
-		srv: &http.Server{
-			Handler:           mux,
-			ReadHeaderTimeout: readHeaderTimeout,
-			ReadTimeout:       readTimeout,
-			WriteTimeout:      writeTimeout,
-			IdleTimeout:       idleTimeout,
-		},
-	}, nil
+	inner, err := httpserver.New(ctx, addr, mux, httpserver.Timeouts{
+		ReadHeader: readHeaderTimeout,
+		Read:       readTimeout,
+		Write:      writeTimeout,
+		Idle:       idleTimeout,
+		Shutdown:   shutdownGrace,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("debug server: %w", err)
+	}
+	return &Server{Server: inner}, nil
 }
 
 func requireLoopback(addr string) error {
@@ -82,37 +78,6 @@ func requireLoopback(addr string) error {
 		"debug address %q is not loopback: profiling endpoints must never be reachable from outside",
 		addr,
 	)
-}
-
-// Addr is the address the server is bound to.
-func (s *Server) Addr() string { return s.ln.Addr().String() }
-
-// Close releases the port without serving, for a server that was created but never run.
-func (s *Server) Close() error {
-	err := s.ln.Close()
-	if errors.Is(err, net.ErrClosed) {
-		return nil
-	}
-	return err
-}
-
-// Run serves until ctx ends, then shuts down gracefully and returns nil.
-func (s *Server) Run(ctx context.Context) error {
-	done := make(chan struct{})
-	stop := context.AfterFunc(ctx, func() {
-		defer close(done)
-		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), shutdownGrace)
-		defer cancel()
-		_ = s.srv.Shutdown(shutdownCtx)
-	})
-	defer stop()
-
-	err := s.srv.Serve(s.ln)
-	if errors.Is(err, http.ErrServerClosed) {
-		<-done
-		return nil
-	}
-	return err
 }
 
 // EnableContentionProfiles turns on sampling for the mutex and block profiles, which are off by default.

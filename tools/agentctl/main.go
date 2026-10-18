@@ -35,6 +35,7 @@ commands:
   fmt md            put every Markdown paragraph and list item on one line
   debt scan|confirm|next|baseline|check|prune  find, triage, and pay off the debt the gates allow
   perf analyze|capture  find which function owns the time, memory, locks, or goroutines (pprof)
+  new service <name> [--aggregate Name]  create a layered service that already passes every gate
   hook <event>      guard for agent tool calls: pre-edit or pre-bash (reads the tool call as JSON on stdin)
   help              show this text
 `
@@ -94,6 +95,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, env envir
 		return runPerf(ctx, args[1:], stdout, stderr, env)
 	case "debt":
 		return runDebt(ctx, args[1:], stdout, stderr, env)
+	case "new":
+		return runNew(args[1:], stdout, stderr, env)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(stdout, usage)
 		return exitOK

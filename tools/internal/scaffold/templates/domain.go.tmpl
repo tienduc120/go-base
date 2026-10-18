@@ -1,0 +1,43 @@
+// Package domain holds the [[.Service]] aggregates and the rules that keep them valid.
+package domain
+
+import (
+	"errors"
+	"strings"
+	"time"
+)
+
+var (
+	ErrEmptyID   = errors.New("[[.AggregateWords]] id must not be empty")
+	ErrEmptyName = errors.New("[[.AggregateWords]] name must not be empty")
+)
+
+type [[.Aggregate]]ID string
+
+func New[[.Aggregate]]ID(raw string) ([[.Aggregate]]ID, error) {
+	if raw == "" {
+		return "", ErrEmptyID
+	}
+	return [[.Aggregate]]ID(raw), nil
+}
+
+type [[.Aggregate]] struct {
+	id        [[.Aggregate]]ID
+	name      string
+	createdAt time.Time
+}
+
+// Register[[.Aggregate]] takes the time as a value: the domain never reads the clock.
+func Register[[.Aggregate]](id [[.Aggregate]]ID, name string, createdAt time.Time) ([[.Aggregate]], error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return [[.Aggregate]]{}, ErrEmptyName
+	}
+	return [[.Aggregate]]{id: id, name: name, createdAt: createdAt}, nil
+}
+
+func (a [[.Aggregate]]) ID() [[.Aggregate]]ID { return a.id }
+
+func (a [[.Aggregate]]) Name() string { return a.name }
+
+func (a [[.Aggregate]]) CreatedAt() time.Time { return a.createdAt }

@@ -1,0 +1,55 @@
+// Package rest exposes the [[.Service]] use cases over HTTP.
+package rest
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+
+	"[[.Module]]/services/[[.Service]]/internal/application"
+)
+
+// maxBodyBytes caps a request body so one client cannot hold memory.
+const maxBodyBytes = 1 << 20
+
+type Creator interface {
+	Execute(
+		ctx context.Context,
+		cmd application.Create[[.Aggregate]]Command,
+	) (application.Create[[.Aggregate]]Result, error)
+}
+
+type createRequest struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type createResponse struct {
+	ID string `json:"id"`
+}
+
+func NewHandler(creator Creator) http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /[[.Route]]", func(w http.ResponseWriter, r *http.Request) {
+		var req createRequest
+		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxBodyBytes)).Decode(&req); err != nil {
+			http.Error(w, "malformed body", http.StatusBadRequest)
+			return
+		}
+
+		cmd := application.Create[[.Aggregate]]Command{ID: req.ID, Name: req.Name}
+		res, err := creator.Execute(r.Context(), cmd)
+		switch {
+		case errors.Is(err, application.ErrInvalidCommand):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		case err != nil:
+			http.Error(w, "internal error", http.StatusInternalServerError)
+		default:
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(createResponse{ID: res.ID})
+		}
+	})
+	return mux
+}

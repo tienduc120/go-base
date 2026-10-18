@@ -1,0 +1,38 @@
+// Package memory is an in-process adapter for the [[.Service]] ports, used by tests and local runs.
+package memory
+
+import (
+	"context"
+	"fmt"
+	"sync"
+
+	"[[.Module]]/services/[[.Service]]/internal/domain"
+)
+
+type [[.Aggregate]]Repository struct {
+	mu    sync.Mutex
+	items map[domain.[[.Aggregate]]ID]domain.[[.Aggregate]]
+}
+
+func New[[.Aggregate]]Repository() *[[.Aggregate]]Repository {
+	return &[[.Aggregate]]Repository{items: make(map[domain.[[.Aggregate]]ID]domain.[[.Aggregate]])}
+}
+
+func (r *[[.Aggregate]]Repository) Save(ctx context.Context, agg domain.[[.Aggregate]]) error {
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("save [[.AggregateWords]]: %w", err)
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.items[agg.ID()] = agg
+	return nil
+}
+
+// Find is for tests and local runs; the application port declares only what a use case needs.
+func (r *[[.Aggregate]]Repository) Find(id domain.[[.Aggregate]]ID) (domain.[[.Aggregate]], bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	agg, ok := r.items[id]
+	return agg, ok
+}
