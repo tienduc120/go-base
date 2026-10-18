@@ -1,0 +1,51 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+          install-only: true
+
+      - name: Install analysis tools
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+          go install github.com/arch-go/arch-go/v2@v2.1.2
+
+      # The same gate the pre-push hook runs: vet, analyzers, strict lint, race tests, layer rules, govulncheck,
+      # and the proof that every rule fires on its fixture.
+      - name: Verify
+        run: go run ./tools/agentctl verify --full
+
+      - name: Commit messages
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          for sha in $(git rev-list "origin/${BASE_REF}..HEAD"); do
+            git log -1 --format=%B "$sha" > "${RUNNER_TEMP}/msg"
+            go run ./tools/agentctl commitmsg "${RUNNER_TEMP}/msg"
+          done
