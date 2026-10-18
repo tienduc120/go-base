@@ -18,5 +18,6 @@ One file per decision, numbered, never edited after acceptance (supersede it wit
 | [0012](0012-postgres-runtime-guards.md) | Postgres runtime guards | accepted |
 | [0013](0013-load-programs-live-in-the-service.md) | Load programs live in the service | accepted |
 | [0014](0014-errors-are-values-owned-by-the-layer-that-raises-them.md) | Errors are values owned by the layer that raises them | accepted |
+| [0015](0015-one-use-case-is-one-transaction-and-nothing-external-happens.md) | One use case is one transaction and nothing external happens inside it | accepted |
 
 Needs an ADR first: a new external dependency, a hosted service, a pinned major version moving, or a change to a published contract.
