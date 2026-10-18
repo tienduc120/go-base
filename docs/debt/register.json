@@ -4,129 +4,114 @@
     {
       "id": "complexity:bbab2abf58",
       "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "reason": "cyclomatic 15 against a lint limit of 30; splitting it would not make the hook rules clearer yet",
       "evidence": "cyclomatic 15, 28 lines",
       "expires": "2027-04-16",
       "decided": "2026-10-18"
     },
     {
       "id": "suppression:0b49a0ae3c",
-      "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "status": "false-positive",
+      "reason": "by design: a deliberate busy-wait that burns CPU for d",
       "evidence": "//nolint:revive // a deliberate busy-wait that burns CPU for d",
-      "expires": "2027-04-16",
       "decided": "2026-10-18"
     },
     {
       "id": "suppression:162eab513e",
-      "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "status": "false-positive",
+      "reason": "by design: the planted defect is this concatenation",
       "evidence": "//nolint:perfsprint // the planted defect is this concatenation",
-      "expires": "2027-04-16",
       "decided": "2026-10-18"
     },
     {
       "id": "suppression:1d38af747f",
-      "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "status": "false-positive",
+      "reason": "by design: the runtime's leak detection works on the whole process",
       "evidence": "//nolint:paralleltest // the runtime's leak detection works on the whole process",
-      "expires": "2027-04-16",
       "decided": "2026-10-18"
     },
     {
       "id": "suppression:210b2a18c0",
-      "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "status": "false-positive",
+      "reason": "by design: an unreadable directory is simply not counted",
       "evidence": "//nolint:nilerr // an unreadable directory is simply not counted",
-      "expires": "2027-04-16",
       "decided": "2026-10-18"
     },
     {
       "id": "suppression:341f9d0bba",
-      "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "status": "false-positive",
+      "reason": "by design: the analysis framework requires a nil result when ResultType is unset",
       "evidence": "//nolint:nilnil // the analysis framework requires a nil result when ResultType is unset",
-      "expires": "2027-04-16",
       "decided": "2026-10-18"
     },
     {
       "id": "suppression:357314adb3",
-      "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "status": "false-positive",
+      "reason": "by design: the path comes from the repository walk or a file named to a local developer command",
       "evidence": "//nolint:gosec // the path comes from the repository walk or a file named to a local developer command",
-      "expires": "2027-04-16",
       "decided": "2026-10-18"
     },
     {
       "id": "suppression:3ac2270cce",
-      "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "status": "false-positive",
+      "reason": "by design: runs as a child process and exits, there is nothing to parallelise",
       "evidence": "//nolint:paralleltest // runs as a child process and exits, there is nothing to parallelise",
-      "expires": "2027-04-16",
       "decided": "2026-10-18"
     },
     {
       "id": "suppression:4969884020",
-      "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "status": "false-positive",
+      "reason": "by design: the path is the message file git passes to the hook",
       "evidence": "//nolint:gosec // the path is the message file git passes to the hook",
-      "expires": "2027-04-16",
       "decided": "2026-10-18"
     },
     {
       "id": "suppression:509d701eb4",
-      "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "status": "false-positive",
+      "reason": "by design: the block profile rate is process-wide",
       "evidence": "//nolint:paralleltest // the block profile rate is process-wide",
-      "expires": "2027-04-16",
       "decided": "2026-10-18"
     },
     {
       "id": "suppression:66d2b979d2",
-      "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "status": "false-positive",
+      "reason": "by design: the allocation profile is process-wide",
       "evidence": "//nolint:paralleltest // the allocation profile is process-wide",
-      "expires": "2027-04-16",
       "decided": "2026-10-18"
     },
     {
       "id": "suppression:982aaf60df",
-      "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "status": "false-positive",
+      "reason": "by design: goroutine profiles are compared across the whole process",
       "evidence": "//nolint:paralleltest // goroutine profiles are compared across the whole process",
-      "expires": "2027-04-16",
       "decided": "2026-10-18"
     },
     {
       "id": "suppression:c5bb437e74",
-      "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "status": "false-positive",
+      "reason": "by design: the analysis framework requires a nil result when ResultType is unset",
       "evidence": "//nolint:nilnil // the analysis framework requires a nil result when ResultType is unset",
-      "expires": "2027-04-16",
       "decided": "2026-10-18"
     },
     {
       "id": "suppression:c9d54d65d0",
-      "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "status": "false-positive",
+      "reason": "by design: the allocation profile is process-wide",
       "evidence": "//nolint:paralleltest // the allocation profile is process-wide",
-      "expires": "2027-04-16",
       "decided": "2026-10-18"
     },
     {
       "id": "suppression:e47a583cc1",
-      "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "status": "false-positive",
+      "reason": "by design: the mutex profile rate is process-wide",
       "evidence": "//nolint:paralleltest // the mutex profile rate is process-wide",
-      "expires": "2027-04-16",
       "decided": "2026-10-18"
     },
     {
       "id": "suppression:ef967d022e",
-      "status": "accepted",
-      "reason": "present when debt tracking was adopted; every suppression already carries its own reason",
+      "status": "false-positive",
+      "reason": "by design: read-only table",
       "evidence": "//nolint:gochecknoglobals // read-only table",
-      "expires": "2027-04-16",
       "decided": "2026-10-18"
     }
   ]
