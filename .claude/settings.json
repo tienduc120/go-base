@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && for b in .agentctl/bin/agentctl.exe .agentctl/bin/agentctl; do [ -x \"$b\" ] && exec \"$b\" hook pre-edit; done; b=\".agentctl/bin/agentctl$(go env GOEXE)\"; go build -o \"$b\" ./tools/agentctl && exec \"$b\" hook pre-edit",
+            "timeout": 60,
+            "statusMessage": "Checking protected files"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && for b in .agentctl/bin/agentctl.exe .agentctl/bin/agentctl; do [ -x \"$b\" ] && exec \"$b\" hook pre-bash; done; b=\".agentctl/bin/agentctl$(go env GOEXE)\"; go build -o \"$b\" ./tools/agentctl && exec \"$b\" hook pre-bash",
+            "timeout": 60,
+            "statusMessage": "Checking command"
+          }
+        ]
+      }
+    ]
+  }
+}

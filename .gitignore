@@ -3,3 +3,6 @@
 
 # agentctl logs and built helper binaries
 .agentctl/
+
+# Personal Claude Code settings
+.claude/settings.local.json

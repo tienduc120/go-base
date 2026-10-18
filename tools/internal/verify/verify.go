@@ -167,8 +167,12 @@ func skipDir(root, p, name string) error {
 	return nil
 }
 
-func agentlintBin(root string) string {
-	name := "agentlint"
+// agentctlPkg is built into .agentctl/bin so the agent hooks start in milliseconds instead of compiling on every call.
+const agentctlPkg = "github.com/tienduc120/go-base/tools/agentctl"
+
+func agentlintBin(root string) string { return builtBin(root, "agentlint") }
+
+func builtBin(root, name string) string {
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
@@ -198,6 +202,8 @@ func Plan(env Env, level Level) []Step {
 		bin := agentlintBin(env.Root)
 		steps = append(steps, command(env, "build agentlint", env.Root, buildTimeout,
 			"go", "build", "-o", bin, rules.AgentlintPkg))
+		steps = append(steps, command(env, "build agentctl", env.Root, buildTimeout,
+			"go", "build", "-o", builtBin(env.Root, "agentctl"), agentctlPkg))
 		for _, m := range withGo {
 			steps = append(steps, command(env, "agentlint ("+m.Rel+")", m.Dir, vetTimeout,
 				"go", "vet", "-vettool="+bin, allPackages))

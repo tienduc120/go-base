@@ -6,7 +6,7 @@ The decisions behind it: [docs/adr/](docs/adr/README.md).
 
 ## Status
 
-Phase 1 (static and architecture gates) is done, and the bounded-command runner (`agentctl run`) from phase 4 is in. Enforced today: the lint rules in `.golangci.yml`, the layer rules in `arch-go.yml`, and the analyzers in `tools/analyzers`, each proven by a fixture, plus Markdown style (one paragraph per line). Not built yet: the guard that stops an agent editing the rules that judge it or running a long command unwrapped, goroutine-leak checks, the database gates, the pprof loop, and the debt loop. Everything marked "planned" below has no enforcer yet. Do not report a rule as enforced unless a tool in this repo checks it.
+Phase 1 (static and architecture gates) is done, and the bounded-command runner (`agentctl run`) from phase 4 is in. Enforced today: the lint rules in `.golangci.yml`, the layer rules in `arch-go.yml`, and the analyzers in `tools/analyzers`, each proven by a fixture, plus Markdown style (one paragraph per line). The agent guard (below) is in. Not built yet: goroutine-leak checks, the database gates, the pprof loop, and the debt loop. Everything marked "planned" below has no enforcer yet. Do not report a rule as enforced unless a tool in this repo checks it.
 
 ## How to work
 
@@ -45,6 +45,17 @@ Two modules joined by `go.work`: the root module (services, platform, contracts,
 - **Markdown: one paragraph or list item per line.** Never hard-wrap prose; editors wrap for themselves and hand-wrapped lines show as arbitrary breaks. `agentctl fmt md` fixes it and `verify` checks it.
 - **Comments say why**, never what, and stay short.
 - Conventional Commits: `type(scope): subject`, imperative, lowercase.
+
+## Agent guard
+
+In Claude Code, `.claude/settings.json` runs `agentctl hook` before every edit and shell command and refuses, with a reason you can act on:
+
+- changing a committed rule file: `.golangci.yml`, `arch-go.yml`, `lefthook.yml`, the CI workflow, `.claude/settings.json`, the gate code (`tools/analyzers`, `tools/agentlint`, `tools/internal/{rules,verify,commitmsg,guard}`), anything under `testdata/`, and the licenses. New files are always allowed, so adding a fixture or an analyzer is fine; protection starts once a file is committed.
+- skipping the git hooks: `--no-verify`, `HUSKY=0`, `LEFTHOOK=0`, `core.hooksPath`, `lefthook uninstall`.
+- writing, moving, or deleting a protected path through the shell.
+- commands that never return: `go test` without `-timeout`, a service run in the foreground, `docker compose up` without `-d`, `tail -f`. Use `agentctl run` instead.
+
+When you are blocked, fix the cause. Do not look for another way to make the same change. If the rule really should change, ask the user: they approve by starting the session with `AGENTCTL_ALLOW_PROTECTED=1`, which only lifts the protected-file block. The guard is a guard rail, not a security boundary; `CODEOWNERS`, the git hooks, and CI are the boundary. Codex and Cursor do not run these hooks. Decision record: [ADR-0005](docs/adr/0005-agent-guard.md).
 
 ## Architecture
 

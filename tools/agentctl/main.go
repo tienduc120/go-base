@@ -33,14 +33,24 @@ commands:
   commitmsg <file>  check a commit message (called by the commit-msg hook)
   run -- <command>  run a command under a deadline and idle limit, killing its whole process tree
   fmt md            put every Markdown paragraph and list item on one line
+  hook <event>      guard for agent tool calls: pre-edit or pre-bash (reads the tool call as JSON on stdin)
   help              show this text
 `
 
 type environment struct {
-	// Both runners are nil in production; tests inject fakes.
+	// The runners, stdin, and getenv are nil in production; tests inject fakes.
 	runner     doctor.Runner
 	procRunner proc.Runner
+	stdin      io.Reader
+	getenv     func(string) string
 	cwd        string
+}
+
+func (e environment) env(key string) string {
+	if e.getenv == nil {
+		return ""
+	}
+	return e.getenv(key)
 }
 
 func main() {
@@ -52,7 +62,7 @@ func main() {
 
 	// Ctrl-C cancels every child process the command started.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	code := run(ctx, os.Args[1:], os.Stdout, os.Stderr, environment{cwd: cwd})
+	code := run(ctx, os.Args[1:], os.Stdout, os.Stderr, environment{cwd: cwd, stdin: os.Stdin, getenv: os.Getenv})
 	stop()
 	os.Exit(code)
 }
@@ -75,6 +85,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, env envir
 		return runRun(ctx, args[1:], stdout, stderr, env)
 	case "fmt":
 		return runFmt(args[1:], stdout, stderr, env)
+	case "hook":
+		return runHook(ctx, args[1:], stderr, env)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(stdout, usage)
 		return exitOK
