@@ -66,7 +66,7 @@ func runDebt(ctx context.Context, args []string, stdout, stderr io.Writer, env e
 		return d.next(args[1:])
 	case "baseline":
 		return d.baseline(args[1:])
-	case "check":
+	case cmdCheck:
 		return d.check()
 	case "prune":
 		return d.prune()

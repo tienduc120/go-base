@@ -24,6 +24,9 @@ const (
 
 const toolTimeout = 15 * time.Second
 
+// cmdCheck is the subcommand name that db, debt, and skills share.
+const cmdCheck = "check"
+
 const usage = `usage: agentctl <command> [flags]
 
 commands:
@@ -36,6 +39,7 @@ commands:
   debt scan|confirm|next|baseline|check|prune  find, triage, and pay off the debt the gates allow
   perf analyze|capture  find which function owns the time, memory, locks, or goroutines (pprof)
   new service <name> [--aggregate Name]  create a layered service that already passes every gate
+  skills link|check  link .claude/skills to .agents/skills, where skills live, and check that it is in place
   db check [--no-plan] [service...]  judge a service's SQL: query rules, and each query's plan on a throwaway Postgres
   hook <event>      guard for agent tool calls: pre-edit or pre-bash (reads the tool call as JSON on stdin)
   help              show this text
@@ -72,41 +76,48 @@ func main() {
 	os.Exit(code)
 }
 
+// handler runs one command with the arguments after its name.
+type handler func(ctx context.Context, args []string, stdout, stderr io.Writer, env environment) int
+
+// commands maps each command name to its handler. A table, not a switch, so a new command is one line and the
+// dispatcher does not grow with them.
+func commands() map[string]handler {
+	return map[string]handler{
+		"doctor": runDoctor,
+		"rules":  runRules,
+		"verify": runVerify,
+		"run":    runRun,
+		"perf":   runPerf,
+		"debt":   runDebt,
+		"new":    runNew,
+		"db":     runDB,
+		"skills": runSkills,
+		"commitmsg": func(ctx context.Context, args []string, _, stderr io.Writer, env environment) int {
+			return runCommitmsg(ctx, args, stderr, env)
+		},
+		"fmt": func(_ context.Context, args []string, stdout, stderr io.Writer, env environment) int {
+			return runFmt(args, stdout, stderr, env)
+		},
+		"hook": func(ctx context.Context, args []string, _, stderr io.Writer, env environment) int {
+			return runHook(ctx, args, stderr, env)
+		},
+	}
+}
+
 func run(ctx context.Context, args []string, stdout, stderr io.Writer, env environment) int {
 	if len(args) == 0 {
 		_, _ = fmt.Fprint(stderr, usage)
 		return exitUsage
 	}
-	switch args[0] {
-	case "doctor":
-		return runDoctor(ctx, args[1:], stdout, stderr, env)
-	case "rules":
-		return runRules(ctx, args[1:], stdout, stderr, env)
-	case "verify":
-		return runVerify(ctx, args[1:], stdout, stderr, env)
-	case "commitmsg":
-		return runCommitmsg(ctx, args[1:], stderr, env)
-	case "run":
-		return runRun(ctx, args[1:], stdout, stderr, env)
-	case "fmt":
-		return runFmt(args[1:], stdout, stderr, env)
-	case "hook":
-		return runHook(ctx, args[1:], stderr, env)
-	case "perf":
-		return runPerf(ctx, args[1:], stdout, stderr, env)
-	case "debt":
-		return runDebt(ctx, args[1:], stdout, stderr, env)
-	case "new":
-		return runNew(ctx, args[1:], stdout, stderr, env)
-	case "db":
-		return runDB(ctx, args[1:], stdout, stderr, env)
-	case "help", "-h", "--help":
+	if run, ok := commands()[args[0]]; ok {
+		return run(ctx, args[1:], stdout, stderr, env)
+	}
+	if args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
 		_, _ = fmt.Fprint(stdout, usage)
 		return exitOK
-	default:
-		_, _ = fmt.Fprintf(stderr, "agentctl: unknown command %q\n\n%s", args[0], usage)
-		return exitUsage
 	}
+	_, _ = fmt.Fprintf(stderr, "agentctl: unknown command %q\n\n%s", args[0], usage)
+	return exitUsage
 }
 
 func runDoctor(ctx context.Context, args []string, stdout, stderr io.Writer, env environment) int {

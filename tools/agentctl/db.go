@@ -29,7 +29,7 @@ func runDB(ctx context.Context, args []string, stdout, stderr io.Writer, env env
 		return exitUsage
 	}
 	switch args[0] {
-	case "check":
+	case cmdCheck:
 		return dbCheck(ctx, args[1:], stdout, stderr, env)
 	case "test":
 		return dbTest(ctx, args[1:], stdout, stderr, env)

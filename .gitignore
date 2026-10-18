@@ -7,5 +7,8 @@
 # Scratch sqlc output that agentctl db check writes beside a service's queries
 .dbcheck/
 
+# Claude Code reads skills through this link to .agents/skills; `agentctl skills link` makes it
+.claude/skills
+
 # Personal Claude Code settings
 .claude/settings.local.json
