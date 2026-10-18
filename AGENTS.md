@@ -6,7 +6,7 @@ The decisions behind it: [docs/adr/](docs/adr/README.md).
 
 ## Status
 
-Phase 1 (static and architecture gates) is done. Enforced today: the lint rules in `.golangci.yml`, the layer rules in `arch-go.yml`, and the analyzers in `tools/analyzers`, each proven by a fixture. Everything marked "planned" below has no enforcer yet. Do not report a rule as enforced unless a tool in this repo checks it.
+Phase 1 (static and architecture gates) is done, and the bounded-command runner (`agentctl run`) from phase 4 is in. Enforced today: the lint rules in `.golangci.yml`, the layer rules in `arch-go.yml`, and the analyzers in `tools/analyzers`, each proven by a fixture, plus Markdown style (one paragraph per line). Not built yet: the guard that stops an agent editing the rules that judge it or running a long command unwrapped, goroutine-leak checks, the database gates, the pprof loop, and the debt loop. Everything marked "planned" below has no enforcer yet. Do not report a rule as enforced unless a tool in this repo checks it.
 
 ## How to work
 
@@ -26,7 +26,8 @@ Run from the repository root. There is no Make; `agentctl` is the command surfac
 | Prove every rule fires on its fixture                             | `go run ./tools/agentctl rules test`                                                         |
 | Run anything that could hang                                      | `go run ./tools/agentctl run -- <command> [args...]` (`--timeout`, `--idle`, `--name`) |
 | Tests (the TDD loop)                                              | `go test -race -timeout 120s -count=1 ./tools/<package>/`                                    |
-| Format (apply)                                                    | `cd tools && golangci-lint fmt ./...`                                                        |
+| Format Go (apply)                                                 | `cd tools && golangci-lint fmt ./...`                                                        |
+| Format Markdown (apply)                                           | `go run ./tools/agentctl fmt md [file...]`                                                   |
 | Layer rules on real code                                          | `arch-go` (reads `arch-go.yml` from the module root)                                       |
 
 Two modules joined by `go.work`: the root module (services, platform, contracts, none yet) and `tools/` (agentctl). Tool dependencies must never enter the root module.
