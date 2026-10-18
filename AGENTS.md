@@ -37,6 +37,7 @@ Two modules joined by `go.work`: the root module (services, platform, contracts,
 ## Hard rules
 
 - **Test first.** No production code without a test that failed first, for the right reason.
+- **Start goroutines only through `platform/async`** (`async.Run`): it cancels, waits, and turns a panic into an error. A service serves pprof on a loopback-only port with `platform/debugserver`, never on the serving port (ADR-0009).
 - **A package that starts goroutines, subprocesses, or servers checks for leaks.** Its `TestMain` calls `goleak.VerifyTestMain(m)` (ADR-0007), so a test that leaves something running fails the package. Never `time.Sleep` in a test.
 - **New debt is triaged, not hidden.** A `//nolint`, a TODO with no reference, or a function near the complexity limit is debt: fix the cause, or ask the user to accept it with a reason and an expiry. A `refactor:` commit may only add tests, never edit one (the commit-msg hook enforces it). Follow the `debt-recovery` skill.
 - **Never optimise without a profile.** Follow the `perf-diagnose` skill in `.claude/skills/`: capture, read the findings, make one change, capture again, and quote the numbers before and after.
