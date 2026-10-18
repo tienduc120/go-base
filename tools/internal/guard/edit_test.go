@@ -35,6 +35,8 @@ func TestCheckEditBlocksExistingProtectedFiles(t *testing.T) {
 		"tools/agentlint/main.go",
 		"tools/internal/rules/rules.go",
 		"tools/internal/verify/verify.go",
+		"tools/internal/dbcheck/rules.go",
+		"tools/internal/dbcheck/testdata/violations/seq-scan/queries.sql",
 		"tools/internal/commitmsg/commitmsg.go",
 		"tools/internal/guard/edit.go",
 	}

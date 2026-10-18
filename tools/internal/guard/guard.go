@@ -42,6 +42,7 @@ func protectedRules() []protectedRule {
 		{"tools/agentlint/**", judge},
 		{"tools/internal/rules/**", judge},
 		{"tools/internal/verify/**", judge},
+		{"tools/internal/dbcheck/**", judge},
 		{"tools/internal/commitmsg/**", judge},
 		{"tools/internal/guard/**", judge},
 		{"testdata/**", fixture},

@@ -225,6 +225,10 @@ func Plan(env Env, level Level) []Step {
 			steps = append(steps, command(env, "arch-go ("+m.Rel+")", m.Dir, archTimeout, "arch-go"))
 		}
 	}
+	if len(withGo) > 0 {
+		// After "build agentctl": the step runs that binary.
+		steps = append(steps, DBStep(env, level))
+	}
 
 	if level == Full {
 		for _, m := range withGo {

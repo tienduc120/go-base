@@ -27,7 +27,7 @@ Run from the repository root. There is no Make; `agentctl` is the command surfac
 | Find what owns the time, memory, locks, or goroutines | `go run ./tools/agentctl perf capture --url http://127.0.0.1:<pprof port>` while load runs; `perf analyze [--base before.pprof] <file>` for one profile (skill: `perf-diagnose`) |
 | Find, triage, and pay off the debt the gates allow | `go run ./tools/agentctl debt scan`, then `debt confirm <id>`, `debt next`, `debt check` (skill: `debt-recovery`) |
 | Start a new service | `go run ./tools/agentctl new service <name> --aggregate <Name>` (skill: `new-service`); never create `services/<name>` by hand |
-| Judge a service's SQL: query rules and each query's plan | `go run ./tools/agentctl db check [--no-plan] [service...]` (needs Docker for plans; skill: `writing-queries`) |
+| Judge a service's SQL: query rules and each query's plan | `go run ./tools/agentctl db check [--no-plan] [service...]` (the hook runs it with `--no-plan`; `verify --full` and CI read plans too and need Docker; skill: `writing-queries`) |
 | Run the tests that need a database | `go run ./tools/agentctl db test [package...]` starts a throwaway Postgres and sets `TEST_DATABASE_URL`; without it those tests skip loudly |
 | Run anything that could hang                                      | `go run ./tools/agentctl run -- <command> [args...]` (`--timeout`, `--idle`, `--name`) |
 | Tests (the TDD loop)                                              | `go test -race -timeout 120s -count=1 ./tools/<package>/`                                    |
@@ -62,7 +62,7 @@ Two modules joined by `go.work`: the root module (services, platform, contracts)
 
 In Claude Code, `.claude/settings.json` runs `agentctl hook` before every edit and shell command and refuses, with a reason you can act on:
 
-- changing a committed rule file: `.golangci.yml`, `arch-go.yml`, `lefthook.yml`, the CI workflow, `.claude/settings.json`, the gate code (`tools/analyzers`, `tools/agentlint`, `tools/internal/{rules,verify,commitmsg,guard}`), anything under `testdata/`, and the licenses. New files are always allowed, so adding a fixture or an analyzer is fine; protection starts once a file is committed.
+- changing a committed rule file: `.golangci.yml`, `arch-go.yml`, `lefthook.yml`, the CI workflow, `.claude/settings.json`, the gate code (`tools/analyzers`, `tools/agentlint`, `tools/internal/{rules,verify,commitmsg,guard,dbcheck}`), anything under `testdata/`, and the licenses. New files are always allowed, so adding a fixture or an analyzer is fine; protection starts once a file is committed.
 - skipping the git hooks: `--no-verify`, `HUSKY=0`, `LEFTHOOK=0`, `core.hooksPath`, `lefthook uninstall`.
 - writing, moving, or deleting a protected path through the shell.
 - commands that never return: `go test` without `-timeout`, a service run in the foreground, `docker compose up` without `-d`, `tail -f`. Use `agentctl run` instead.

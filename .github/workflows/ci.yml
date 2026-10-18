@@ -34,11 +34,21 @@ jobs:
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
           go install github.com/arch-go/arch-go/v2@v2.1.2
+          go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
 
       # The same gate the pre-push hook runs: vet, analyzers, strict lint, race tests, layer rules, govulncheck,
       # and the proof that every rule fires on its fixture.
       - name: Verify
         run: go run ./tools/agentctl verify --full
+
+      # Tests that need a real Postgres: the pool's timeouts and query budget, and each service's adapter. Required here,
+      # so a missing sqlc or Docker fails the build instead of skipping the proof.
+      - name: Database tests
+        env:
+          AGENTCTL_REQUIRE_DB: "1"
+        run: |
+          go run ./tools/agentctl db test
+          cd tools && go test -race -count=1 -timeout 300s ./internal/dbcheck
 
       - name: Commit messages
         if: github.event_name == 'pull_request'
