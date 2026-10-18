@@ -36,6 +36,7 @@ func protectedRules() []protectedRule {
 		{"arch-go.yml", judge},
 		{"lefthook.yml", judge},
 		{".github/workflows/**", judge},
+		{".github/CODEOWNERS", judge},
 		{".claude/settings.json", judge},
 		{"tools/analyzers/**", judge},
 		{"tools/agentlint/**", judge},
