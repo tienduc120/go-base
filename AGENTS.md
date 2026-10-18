@@ -2,7 +2,7 @@
 
 A Go base for strict DDD and clean-architecture cloud microservices, extended by AI agents. It ships almost no features; it ships rules a tool checks, skills an agent follows, and feedback loops for performance and tech debt.
 
-The decisions behind it: [docs/adr/](docs/adr/README.md).
+The decisions behind it: [docs/adr/](docs/adr/README.md). Add one with the `writing-adrs` skill.
 
 ## Status
 
@@ -27,6 +27,7 @@ Run from the repository root. There is no Make; `agentctl` is the command surfac
 | Find what owns the time, memory, locks, or goroutines | `go run ./tools/agentctl perf capture --url http://127.0.0.1:<pprof port>` while load runs; `perf analyze [--base before.pprof] <file>` for one profile (skill: `perf-diagnose`) |
 | Find, triage, and pay off the debt the gates allow | `go run ./tools/agentctl debt scan`, then `debt confirm <id>`, `debt next`, `debt check` (skill: `debt-recovery`) |
 | Put a service under load while profiling it | `go run ./tools/agentctl run --timeout 2m -- go run ./services/<name>/cmd/<name>-load -duration 40s` (in the background, then `perf capture`); write the scenario in `scenario.go` first (skill: `perf-diagnose`) |
+| Record a decision | `go run ./tools/agentctl adr new "<title>"` writes the next record and indexes it; `adr check` validates them all (skill: `writing-adrs`) |
 | Make the skills visible to Claude Code (once per clone) | `go run ./tools/agentctl skills link`; `skills check` fails if the link is missing |
 | Start a new service | `go run ./tools/agentctl new service <name> --aggregate <Name>` (skill: `new-service`); never create `services/<name>` by hand |
 | Judge a service's SQL: query rules and each query's plan | `go run ./tools/agentctl db check [--no-plan] [service...]` (the hook runs it with `--no-plan`; `verify --full` and CI read plans too and need Docker; skill: `writing-queries`) |
