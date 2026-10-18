@@ -124,6 +124,10 @@ func layout(d data) []layoutEntry {
 		{"pg_repository.go", PostgresDir + "/" + snake + "_repository.go"},
 		{"pg_repository_test.go", PostgresDir + "/" + snake + "_repository_test.go"},
 		// Not "httpapi": Bitdefender quarantines a test binary of exactly that name.
+		{"load_main.go", "cmd/" + d.Service + "-load/main.go"},
+		{"load_main_test.go", "cmd/" + d.Service + "-load/main_test.go"},
+		{"load_scenario.go", "cmd/" + d.Service + "-load/scenario.go"},
+		{"load_scenario_test.go", "cmd/" + d.Service + "-load/scenario_test.go"},
 		{"handler.go", "internal/interfaces/rest/handler.go"},
 		{"handler_test.go", "internal/interfaces/rest/handler_test.go"},
 	}

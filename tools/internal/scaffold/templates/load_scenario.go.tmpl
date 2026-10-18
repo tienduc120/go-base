@@ -1,0 +1,22 @@
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"[[.Module]]/platform/loadgen"
+)
+
+// scenario returns the step every worker repeats: the requests this service's users really make.
+//
+// This one is a placeholder and fails on purpose, so a load run before the scenario is written reports a failure
+// instead of a healthy-looking run of nothing. Replace the body with real requests:
+//   - build each request with http.NewRequestWithContext(ctx, ...) and send it with an http.Client that has a Timeout;
+//   - make ids unique with w.ID and w.Iteration, plus a per-run prefix if the data outlives the run;
+//   - return an error for any status you did not expect, so the error count means something;
+//   - weigh the flows the way production traffic is weighed, for example ten reads for every write.
+func scenario(baseURL string) loadgen.Step {
+	return func(context.Context, loadgen.Worker) error {
+		return fmt.Errorf("scenario not written for %s: describe the requests your users make in scenario.go", baseURL)
+	}
+}

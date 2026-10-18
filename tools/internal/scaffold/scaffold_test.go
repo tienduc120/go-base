@@ -56,6 +56,10 @@ func TestGenerateProducesTheWholeLayeredService(t *testing.T) {
 		"services/billing/internal/infrastructure/postgres/sqlc.yaml",
 		"services/billing/internal/infrastructure/postgres/invoice_repository.go",
 		"services/billing/internal/infrastructure/postgres/invoice_repository_test.go",
+		"services/billing/cmd/billing-load/main.go",
+		"services/billing/cmd/billing-load/main_test.go",
+		"services/billing/cmd/billing-load/scenario.go",
+		"services/billing/cmd/billing-load/scenario_test.go",
 		"services/billing/internal/interfaces/rest/handler.go",
 		"services/billing/internal/interfaces/rest/handler_test.go",
 	}
@@ -310,5 +314,22 @@ func TestGeneratedSQLAndYAMLAreNotRunThroughTheGoFormatter(t *testing.T) {
 	}
 	if !strings.HasPrefix(find(t, files, "sqlc.yaml"), "version:") {
 		t.Error("sqlc.yaml should be plain YAML")
+	}
+}
+
+func TestTheLoadScenarioIsAPlaceholderThatFailsUntilItIsWritten(t *testing.T) {
+	t.Parallel()
+
+	files, err := scaffold.Generate(scaffold.Spec{Module: testModule, Service: "billing"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	scenario := find(t, files, "cmd/billing-load/scenario.go")
+	if !strings.Contains(scenario, "scenario not written") {
+		t.Error("a load run before the scenario exists must fail, or it reports a healthy run of nothing")
+	}
+	if strings.Contains(scenario, "http.NewRequest") && !strings.Contains(scenario, "//   - build each request") {
+		t.Error("the skeleton must not ship a sample call against the example API; projects write their own")
 	}
 }
