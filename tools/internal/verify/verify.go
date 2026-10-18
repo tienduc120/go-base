@@ -189,6 +189,7 @@ func Plan(env Env, level Level) []Step {
 			skipped("checks ("+m.Rel+")", "no Go packages yet: vet, lint, tests, and layer rules skipped"),
 		)
 	}
+	steps = append(steps, markdownStep(env))
 
 	for _, m := range withGo {
 		steps = append(steps, command(env, "go vet ("+m.Rel+")", m.Dir, vetTimeout, "go", "vet", allPackages))

@@ -32,6 +32,7 @@ commands:
   verify [--full]   run the gates; --full adds govulncheck and rules test
   commitmsg <file>  check a commit message (called by the commit-msg hook)
   run -- <command>  run a command under a deadline and idle limit, killing its whole process tree
+  fmt md            put every Markdown paragraph and list item on one line
   help              show this text
 `
 
@@ -72,6 +73,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, env envir
 		return runCommitmsg(args[1:], stderr)
 	case "run":
 		return runRun(ctx, args[1:], stdout, stderr, env)
+	case "fmt":
+		return runFmt(args[1:], stdout, stderr, env)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(stdout, usage)
 		return exitOK
