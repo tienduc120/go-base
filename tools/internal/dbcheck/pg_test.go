@@ -240,3 +240,64 @@ func TestExplainReportsWhatPostgresSaid(t *testing.T) {
 		t.Error("wrong error kind")
 	}
 }
+
+func TestAPublishedServerListensOnLoopbackOnly(t *testing.T) {
+	t.Parallel()
+
+	runner := &fakeRunner{}
+	if _, err := dbcheck.StartPostgres(
+		t.Context(),
+		runner,
+		"postgres:18-alpine",
+		dbcheck.WithPublishedPort(),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	run, _ := runner.find("run -d")
+	if !strings.Contains(run, "-p 127.0.0.1::5432") {
+		t.Errorf("a test server must publish on loopback with a random port, never on every interface: %s", run)
+	}
+}
+
+func TestURLReadsThePortDockerChose(t *testing.T) {
+	t.Parallel()
+
+	runner := &fakeRunner{handle: func(spec proc.Spec) (proc.Result, error) {
+		if len(spec.Args) > 0 && spec.Args[0] == "port" {
+			return proc.Result{Output: "127.0.0.1:55432\n[::1]:55432\n"}, nil
+		}
+		return proc.Result{}, nil
+	}}
+	pg, err := dbcheck.StartPostgres(t.Context(), runner, "postgres:18-alpine", dbcheck.WithPublishedPort())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := pg.URL(t.Context(), "postgres")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "postgres://postgres@127.0.0.1:55432/postgres?sslmode=disable" {
+		t.Errorf("url = %q", got)
+	}
+}
+
+func TestURLRefusesAnUnparsableAnswer(t *testing.T) {
+	t.Parallel()
+
+	runner := &fakeRunner{handle: func(spec proc.Spec) (proc.Result, error) {
+		if len(spec.Args) > 0 && spec.Args[0] == "port" {
+			return proc.Result{Output: "no public port\n"}, nil
+		}
+		return proc.Result{}, nil
+	}}
+	pg, err := dbcheck.StartPostgres(t.Context(), runner, "postgres:18-alpine", dbcheck.WithPublishedPort())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err = pg.URL(t.Context(), "postgres"); err == nil {
+		t.Error("a missing port must be an error, not a URL to nowhere")
+	}
+}

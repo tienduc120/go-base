@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -144,5 +145,67 @@ func TestDbUsageErrors(t *testing.T) {
 	}
 	if got := invoke(t, environment{cwd: t.TempDir()}, "db", "check"); got.code != 2 {
 		t.Errorf("outside a repository: exit = %d, want 2", got.code)
+	}
+}
+
+// testStack plays Docker and go test for `db test`.
+type testStack struct {
+	goExit   int
+	goOutput string
+	calls    []string
+}
+
+func (s *testStack) Run(_ context.Context, spec proc.Spec) (proc.Result, error) {
+	s.calls = append(s.calls, spec.Name+" "+strings.Join(spec.Args, " "))
+	switch {
+	case spec.Name == "docker" && len(spec.Args) > 0 && spec.Args[0] == "port":
+		return proc.Result{Output: "127.0.0.1:55432\n"}, nil
+	case spec.Name == "go":
+		return proc.Result{ExitCode: s.goExit, Output: s.goOutput}, nil
+	}
+	return proc.Result{}, nil
+}
+
+func TestDbTestRunsTheTestsAgainstAThrowawayServer(t *testing.T) {
+	t.Parallel()
+
+	stack := &testStack{goOutput: "ok  \tgithub.com/x/platform/postgres\t1.2s\n"}
+	got := invoke(t, environment{cwd: newRepo(t), procRunner: stack}, "db", "test", "./platform/postgres/...")
+
+	if got.code != 0 || !strings.Contains(got.stdout, "db test: ok") {
+		t.Fatalf("exit = %d\n%s\n%s", got.code, got.stdout, got.stderr)
+	}
+	joined := strings.Join(stack.calls, "\n")
+	if !strings.Contains(joined, "go test -race") || !strings.Contains(joined, "./platform/postgres/...") ||
+		!strings.Contains(joined, "rm -f") {
+		t.Errorf("calls:\n%s", joined)
+	}
+}
+
+func TestDbTestShowsTheTailOfAFailingRun(t *testing.T) {
+	t.Parallel()
+
+	stack := &testStack{
+		goExit:   1,
+		goOutput: "--- FAIL: TestTheServerCancels (0.31s)\n    integration_test.go:41: err = nil\nFAIL\n",
+	}
+	got := invoke(t, environment{cwd: newRepo(t), procRunner: stack}, "db", "test")
+
+	if got.code != 1 {
+		t.Fatalf("exit = %d, want 1\n%s", got.code, got.stdout)
+	}
+	if !strings.Contains(got.stdout, "TestTheServerCancels") || !strings.Contains(got.stdout, "db test: failed") {
+		t.Errorf("a failure must show what failed:\n%s", got.stdout)
+	}
+}
+
+func TestDbTestReportsMissingDockerAsAUsageError(t *testing.T) {
+	t.Parallel()
+
+	missing := specRunner(func(proc.Spec) (proc.Result, error) { return proc.Result{}, exec.ErrNotFound })
+	got := invoke(t, environment{cwd: newRepo(t), procRunner: missing}, "db", "test")
+
+	if got.code != 2 || !strings.Contains(got.stderr, "docker") {
+		t.Errorf("exit = %d, stderr = %q", got.code, got.stderr)
 	}
 }

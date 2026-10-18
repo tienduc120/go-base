@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path"
@@ -43,26 +44,44 @@ type Postgres struct {
 
 func (p *Postgres) Name() string { return p.name }
 
+// StartOption changes how StartPostgres runs the container.
+type StartOption func(*startConfig)
+
+type startConfig struct{ publish bool }
+
+// WithPublishedPort makes the server reachable from the host, on a random port of the loopback interface only. Plan
+// checks do not need it; a test run that connects with a Go driver does.
+func WithPublishedPort() StartOption { return func(c *startConfig) { c.publish = true } }
+
 // StartPostgres runs a disposable container and returns once the server answers.
-func StartPostgres(ctx context.Context, runner proc.Runner, image string) (*Postgres, error) {
+func StartPostgres(ctx context.Context, runner proc.Runner, image string, opts ...StartOption) (*Postgres, error) {
+	var cfg startConfig
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
 	suffix := make([]byte, randomBytes)
 	if _, err := rand.Read(suffix); err != nil {
 		return nil, fmt.Errorf("name the container: %w", err)
 	}
 	pg := &Postgres{runner: runner, name: "gobase-dbcheck-" + hex.EncodeToString(suffix)}
 
-	_, err := pg.docker(ctx, startTimeout, "run", "-d", "--rm",
-		"--name", pg.name, "--label", label,
-		"-e", "POSTGRES_HOST_AUTH_METHOD=trust",
-		"--tmpfs", "/var/lib/postgresql",
-		"--entrypoint", "sh", image,
+	args := []string{
+		"run", "-d", "--rm", "--name", pg.name, "--label", label,
+		"-e", "POSTGRES_HOST_AUTH_METHOD=trust", "--tmpfs", "/var/lib/postgresql",
+	}
+	if cfg.publish {
+		args = append(args, "-p", "127.0.0.1::5432")
+	}
+	args = append(args, "--entrypoint", "sh", image,
 		"-c", "exec timeout "+lifetimeSeconds+" docker-entrypoint.sh postgres "+
 			"-c fsync=off -c full_page_writes=off -c synchronous_commit=off")
-	if err != nil {
+
+	if _, err := pg.docker(ctx, startTimeout, args...); err != nil {
 		return nil, fmt.Errorf("start postgres (%s): %w", image, err)
 	}
 
-	if err = pg.waitReady(ctx); err != nil {
+	if err := pg.waitReady(ctx); err != nil {
 		pg.Stop(ctx)
 		return nil, err
 	}
@@ -99,6 +118,22 @@ func (p *Postgres) waitReady(ctx context.Context) error {
 		case <-poll.C:
 		}
 	}
+}
+
+// URL is the connection URL of db on the host, for a server started WithPublishedPort.
+func (p *Postgres) URL(ctx context.Context, db string) (string, error) {
+	res, err := p.docker(ctx, stepTimeout, "port", p.name, "5432/tcp")
+	if err != nil {
+		return "", err
+	}
+	first, _, _ := strings.Cut(strings.TrimSpace(res.Output), "\n")
+	if _, _, splitErr := net.SplitHostPort(strings.TrimSpace(first)); splitErr != nil {
+		return "", fmt.Errorf(
+			"docker did not report a published port (was the server started WithPublishedPort?): %q",
+			res.Output,
+		)
+	}
+	return fmt.Sprintf("postgres://%s@%s/%s?sslmode=disable", superuser, strings.TrimSpace(first), db), nil
 }
 
 // CreateDatabase makes an empty database, so each service is judged against only its own schema.

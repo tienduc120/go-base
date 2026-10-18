@@ -13,8 +13,9 @@ Only MIT, BSD, and Apache-2.0 material is brought in. For each item keep the ups
 - `golang.org/x/tools` (BSD-3-Clause), the analysis framework behind our analyzers.
 - `github.com/google/pprof` (Apache-2.0), the profile parser and diff behind `agentctl perf`.
 - `go.uber.org/goleak` (MIT, Copyright (c) 2018 Uber Technologies, Inc.), the goroutine-leak check in `TestMain`.
+- `github.com/jackc/pgx/v5` v5.11.0 (MIT, Copyright (c) 2013-2021 Jack Christensen), the Postgres driver and pool behind `platform/postgres`, with its dependencies `github.com/jackc/pgpassfile` (MIT, 2019), `github.com/jackc/pgservicefile` (MIT, 2020), `github.com/jackc/puddle/v2` (MIT, 2018), all Jack Christensen, and `golang.org/x/sync` and `golang.org/x/text` (BSD-3-Clause, The Go Authors).
 
-Both are dependencies of the `tools` module only, never of a service.
+`golang.org/x/tools` and `github.com/google/pprof` are dependencies of the `tools` module only. `goleak` and `pgx` belong to the root module, which holds the platform and the services.
 
 ## Developer tools (installed, not copied)
 
