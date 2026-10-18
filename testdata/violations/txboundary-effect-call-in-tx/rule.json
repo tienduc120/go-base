@@ -1,0 +1,5 @@
+{
+  "enforcer": "agentlint",
+  "contains": "call on Mailer inside a transaction",
+  "doc": "An email sent inside a transaction is not undone when the transaction rolls back; it goes through the outbox."
+}

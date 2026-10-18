@@ -1,0 +1,5 @@
+{
+  "enforcer": "agentlint",
+  "contains": "has no typed id",
+  "doc": "An id that is a bare string can be passed for any other id; an aggregate root's id is a defined type."
+}

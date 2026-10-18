@@ -1,0 +1,5 @@
+{
+  "enforcer": "agentlint",
+  "contains": "is for repositories only",
+  "doc": "Restore skips the checks New makes, so only a repository, which reads what was valid when saved, may call it."
+}

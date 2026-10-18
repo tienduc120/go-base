@@ -44,7 +44,7 @@ func (u *IssueInvoice) Execute(ctx context.Context, cmd IssueInvoiceCommand) (Is
 		return IssueInvoiceResult{}, fmt.Errorf("%w: %w", ErrInvalidCommand, err)
 	}
 
-	invoice, err := domain.IssueInvoice(id, cmd.AmountCents, u.clock.Now())
+	invoice, err := domain.NewInvoice(id, cmd.AmountCents, u.clock.Now())
 	if err != nil {
 		return IssueInvoiceResult{}, fmt.Errorf("%w: %w", ErrInvalidCommand, err)
 	}

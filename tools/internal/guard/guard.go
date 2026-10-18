@@ -43,6 +43,7 @@ func protectedRules() []protectedRule {
 		{"tools/internal/rules/**", judge},
 		{"tools/internal/verify/**", judge},
 		{"tools/internal/dbcheck/**", judge},
+		{"tools/internal/adr/**", judge},
 		{"tools/internal/commitmsg/**", judge},
 		{"tools/internal/guard/**", judge},
 		{"testdata/**", fixture},

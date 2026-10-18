@@ -1,0 +1,5 @@
+{
+  "enforcer": "agentlint",
+  "contains": "net/http call inside a transaction",
+  "doc": "A network call inside a transaction cannot be rolled back and holds the transaction's locks while it waits."
+}
