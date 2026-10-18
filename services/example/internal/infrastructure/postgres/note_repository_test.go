@@ -22,7 +22,7 @@ func newRepository(t *testing.T) *postgres.NoteRepository {
 func registered(t *testing.T, id, name string) domain.Note {
 	t.Helper()
 	createdAt := time.Date(2026, time.October, 18, 9, 0, 0, 0, time.UTC)
-	agg, err := domain.RegisterNote(domain.NoteID(id), name, createdAt)
+	agg, err := domain.NewNote(domain.NoteID(id), name, createdAt)
 	if err != nil {
 		t.Fatal(err)
 	}

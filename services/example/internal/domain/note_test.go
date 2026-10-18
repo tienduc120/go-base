@@ -16,22 +16,22 @@ func TestNewNoteIDRejectsAnEmptyValue(t *testing.T) {
 	}
 }
 
-func TestRegisterNoteRejectsABlankName(t *testing.T) {
+func TestNewNoteRejectsABlankName(t *testing.T) {
 	t.Parallel()
 
 	for _, name := range []string{"", "   ", "\t"} {
-		_, err := domain.RegisterNote("id-1", name, time.Time{})
+		_, err := domain.NewNote("id-1", name, time.Time{})
 		if !errors.Is(err, domain.ErrEmptyName) {
 			t.Errorf("name %q: err = %v, want ErrEmptyName", name, err)
 		}
 	}
 }
 
-func TestRegisterNoteKeepsWhatItWasGiven(t *testing.T) {
+func TestNewNoteKeepsWhatItWasGiven(t *testing.T) {
 	t.Parallel()
 
 	createdAt := time.Date(2026, time.October, 18, 0, 0, 0, 0, time.UTC)
-	got, err := domain.RegisterNote("id-1", "  first  ", createdAt)
+	got, err := domain.NewNote("id-1", "  first  ", createdAt)
 	if err != nil {
 		t.Fatal(err)
 	}

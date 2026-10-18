@@ -52,7 +52,7 @@ func (u *CreateNote) Execute(
 		return CreateNoteResult{}, fmt.Errorf("%w: %w", ErrInvalidCommand, err)
 	}
 
-	agg, err := domain.RegisterNote(id, cmd.Name, u.clock.Now())
+	agg, err := domain.NewNote(id, cmd.Name, u.clock.Now())
 	if err != nil {
 		return CreateNoteResult{}, fmt.Errorf("%w: %w", ErrInvalidCommand, err)
 	}

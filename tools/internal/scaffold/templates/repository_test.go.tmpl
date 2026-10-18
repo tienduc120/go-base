@@ -13,7 +13,7 @@ import (
 
 func registered(t *testing.T, id, name string) domain.[[.Aggregate]] {
 	t.Helper()
-	agg, err := domain.Register[[.Aggregate]](domain.[[.Aggregate]]ID(id), name, time.Time{})
+	agg, err := domain.New[[.Aggregate]](domain.[[.Aggregate]]ID(id), name, time.Time{})
 	if err != nil {
 		t.Fatal(err)
 	}

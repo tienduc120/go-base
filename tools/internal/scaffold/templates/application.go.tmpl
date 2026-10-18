@@ -52,7 +52,7 @@ func (u *Create[[.Aggregate]]) Execute(
 		return Create[[.Aggregate]]Result{}, fmt.Errorf("%w: %w", ErrInvalidCommand, err)
 	}
 
-	agg, err := domain.Register[[.Aggregate]](id, cmd.Name, u.clock.Now())
+	agg, err := domain.New[[.Aggregate]](id, cmd.Name, u.clock.Now())
 	if err != nil {
 		return Create[[.Aggregate]]Result{}, fmt.Errorf("%w: %w", ErrInvalidCommand, err)
 	}

@@ -16,22 +16,22 @@ func TestNew[[.Aggregate]]IDRejectsAnEmptyValue(t *testing.T) {
 	}
 }
 
-func TestRegister[[.Aggregate]]RejectsABlankName(t *testing.T) {
+func TestNew[[.Aggregate]]RejectsABlankName(t *testing.T) {
 	t.Parallel()
 
 	for _, name := range []string{"", "   ", "\t"} {
-		_, err := domain.Register[[.Aggregate]]("id-1", name, time.Time{})
+		_, err := domain.New[[.Aggregate]]("id-1", name, time.Time{})
 		if !errors.Is(err, domain.ErrEmptyName) {
 			t.Errorf("name %q: err = %v, want ErrEmptyName", name, err)
 		}
 	}
 }
 
-func TestRegister[[.Aggregate]]KeepsWhatItWasGiven(t *testing.T) {
+func TestNew[[.Aggregate]]KeepsWhatItWasGiven(t *testing.T) {
 	t.Parallel()
 
 	createdAt := time.Date(2026, time.October, 18, 0, 0, 0, 0, time.UTC)
-	got, err := domain.Register[[.Aggregate]]("id-1", "  first  ", createdAt)
+	got, err := domain.New[[.Aggregate]]("id-1", "  first  ", createdAt)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -13,7 +13,7 @@ import (
 
 func registered(t *testing.T, id, name string) domain.Note {
 	t.Helper()
-	agg, err := domain.RegisterNote(domain.NoteID(id), name, time.Time{})
+	agg, err := domain.NewNote(domain.NoteID(id), name, time.Time{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -21,14 +21,17 @@ func NewNoteID(raw string) (NoteID, error) {
 	return NoteID(raw), nil
 }
 
+// Note is an aggregate root: the checker holds it to a typed id, NewNote, and RestoreNote.
+//
+//agent:aggregate
 type Note struct {
 	id        NoteID
 	name      string
 	createdAt time.Time
 }
 
-// RegisterNote takes the time as a value: the domain never reads the clock.
-func RegisterNote(id NoteID, name string, createdAt time.Time) (Note, error) {
+// NewNote takes the time as a value: the domain never reads the clock.
+func NewNote(id NoteID, name string, createdAt time.Time) (Note, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return Note{}, ErrEmptyName
@@ -37,7 +40,7 @@ func RegisterNote(id NoteID, name string, createdAt time.Time) (Note, error) {
 }
 
 // RestoreNote rebuilds a stored value for a repository. It was valid when it was saved, so nothing is checked
-// again; new values come only from RegisterNote.
+// again; new values come only from NewNote.
 func RestoreNote(id NoteID, name string, createdAt time.Time) Note {
 	return Note{id: id, name: name, createdAt: createdAt}
 }
