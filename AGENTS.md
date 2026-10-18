@@ -59,6 +59,7 @@ Two modules joined by `go.work`: the root module (services, platform, contracts)
 - **Do not commit `.local/`** (gitignored scratch and notes) and do not install software system-wide without asking.
 - **Credit what you reference.** When a design, config, or code comes from a public source, add it to the README "Credits" in the same change. If any text or code is copied or adapted, also keep the upstream license text and record upstream and version in `NOTICE.md`. Only MIT, BSD, and Apache-2.0 material comes in.
 - **Markdown: one paragraph or list item per line.** Never hard-wrap prose; editors wrap for themselves and hand-wrapped lines show as arbitrary breaks. `agentctl fmt md` fixes it and `verify` checks it.
+- **Errors are returned values, owned by the layer that raises them** (`(T, error)`, never a `Result[T]` or a panic for an expected failure). Translate at each layer boundary with `%w`, and let only `interfaces` choose a status. Follow the `handling-errors` skill (ADR-0014).
 - **Comments say why**, never what, and stay short.
 - Conventional Commits: `type(scope): subject`, imperative, lowercase.
 
