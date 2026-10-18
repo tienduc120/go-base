@@ -194,6 +194,7 @@ func Plan(env Env, level Level) []Step {
 		)
 	}
 	steps = append(steps, markdownStep(env))
+	steps = append(steps, DebtStep(env))
 
 	for _, m := range withGo {
 		steps = append(steps, command(env, "go vet ("+m.Rel+")", m.Dir, vetTimeout, "go", "vet", allPackages))
