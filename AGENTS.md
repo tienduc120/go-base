@@ -6,7 +6,7 @@ The decisions behind it: [docs/adr/](docs/adr/README.md). Add one with the `writ
 
 ## Status
 
-Phase 1 (static and architecture gates) is done, and the bounded-command runner (`agentctl run`) from phase 4 is in. Enforced today: the lint rules in `.golangci.yml`, the layer rules in `arch-go.yml`, and the analyzers in `tools/analyzers`, each proven by a fixture, plus Markdown style (one paragraph per line). The agent guard (below) is in. The pprof diagnosis loop (`agentctl perf`, ADR-0006) is in. Goroutine-leak checks in tests (ADR-0007) are in. The technical-debt loop (`agentctl debt`, ADR-0008) is in, and `verify` runs its ratchet. The service template (`agentctl new service`, ADR-0010) is in, with `services/example` as its checked witness. The query gates (`agentctl db check`, ADR-0011) are in. The runtime database layer (`platform/postgres`: bounded pools and a per-request query budget, ADR-0012) is in. The service template includes a Postgres adapter and a load-program skeleton (`platform/loadgen`, ADR-0013) whose scenario each project writes. Not built yet: a worker (non-API) template and the buf contract gates. Everything marked "planned" below has no enforcer yet. Do not report a rule as enforced unless a tool in this repo checks it.
+Phase 1 (static and architecture gates) is done, and the bounded-command runner (`agentctl run`) from phase 4 is in. Enforced today: the lint rules in `.golangci.yml`, the layer rules in `arch-go.yml`, and the analyzers in `tools/analyzers`, each proven by a fixture, plus Markdown style (one paragraph per line). The agent guard (below) is in. The pprof diagnosis loop (`agentctl perf`, ADR-0006) is in. Goroutine-leak checks in tests (ADR-0007) are in. The technical-debt loop (`agentctl debt`, ADR-0008) is in, and `verify` runs its ratchet. The service template (`agentctl new service`, ADR-0010) is in, with `services/example` as its checked witness. The query gates (`agentctl db check`, ADR-0011) are in. The runtime database layer (`platform/postgres`: bounded pools and a per-request query budget, ADR-0012) is in. The service template includes a Postgres adapter and a load-program skeleton (`platform/loadgen`, ADR-0013) whose scenario each project writes. Not built yet, on purpose: a worker (non-API) template, the buf contract gates, and deploy gates; [docs/deferred.md](docs/deferred.md) says what triggers each and what done means. Everything marked "planned" below has no enforcer yet. Do not report a rule as enforced unless a tool in this repo checks it.
 
 ## How to work
 
@@ -67,7 +67,7 @@ Two modules joined by `go.work`: the root module (services, platform, contracts)
 
 In Claude Code, `.claude/settings.json` runs `agentctl hook` before every edit and shell command and refuses, with a reason you can act on:
 
-- changing a committed rule file: `.golangci.yml`, `arch-go.yml`, `lefthook.yml`, the CI workflow, `.claude/settings.json`, the gate code (`tools/analyzers`, `tools/agentlint`, `tools/internal/{rules,verify,commitmsg,guard,dbcheck}`), anything under `testdata/`, and the licenses. New files are always allowed, so adding a fixture or an analyzer is fine; protection starts once a file is committed.
+- changing a committed rule file: `.golangci.yml`, `arch-go.yml`, `lefthook.yml`, the CI workflow, `.claude/settings.json`, the gate code (`tools/analyzers`, `tools/agentlint`, `tools/internal/{rules,verify,commitmsg,guard,dbcheck,adr}`), anything under `testdata/`, and the licenses. New files are always allowed, so adding a fixture or an analyzer is fine; protection starts once a file is committed.
 - skipping the git hooks: `--no-verify`, `HUSKY=0`, `LEFTHOOK=0`, `core.hooksPath`, `lefthook uninstall`.
 - writing, moving, or deleting a protected path through the shell.
 - commands that never return: `go test` without `-timeout`, a service run in the foreground, `docker compose up` without `-d`, `tail -f`. Use `agentctl run` instead.
@@ -90,11 +90,11 @@ Enforced by `.golangci.yml` (fixture per rule): no `context.Background`/`TODO` o
 
 Enforced by `agentctl db check` on every service's query files (fixture per rule, ADR-0011): no `SELECT *`; `UPDATE`/`DELETE` need `WHERE`; a `:many` query needs `LIMIT` and `ORDER BY`; no `OFFSET` or `ORDER BY random()`; at most three joins; query names start with Create, Get, List, Update, Delete, Count or Exists; and on a throwaway Postgres, no sequential scan and no index walked end to end only to filter.
 
-Enforced by the analyzers in `tools/analyzers` (run as `go vet -vettool`, fixture per rule): no `go` statement outside `platform/async`; domain types have no exported fields (opt out per type with `//agent:allow-exported-fields <reason>`), no struct tags, and never call `time.Now`/`Since`/`Until`.
+Enforced by the analyzers in `tools/analyzers` (run as `go vet -vettool`, fixture per rule): inside the function passed to `InTransaction` only repositories, the outbox, and the clock are used, with no network call, no nested transaction, and no transaction opened outside `application` (`txboundary`, ADR-0015); a type marked `//agent:aggregate` has a typed `id`, `New<T>`, and `Restore<T>`, and only infrastructure calls `Restore` (`aggregateshape`, ADR-0016); no `go` statement outside `platform/async`; domain types have no exported fields (opt out per type with `//agent:allow-exported-fields <reason>`), no struct tags, and never call `time.Now`/`Since`/`Until`.
 
 The Go compiler already forbids importing another service's `internal/` packages.
 
-Planned, not enforced yet: aggregates have `New` / `Restore` constructors; cross-aggregate effects go through events and an outbox; no query inside a loop is enforced by the query budget in tests that assert it, not yet by a tool across the repository.
+Planned, not enforced yet: the outbox table, the relay, and the transaction runner (each project provides them; only the transaction boundary is checked); no query inside a loop is enforced by the query budget in tests that assert it, not yet by a tool across the repository.
 
 ## Things that will surprise you
 
