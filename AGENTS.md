@@ -6,7 +6,7 @@ The decisions behind it: [docs/adr/](docs/adr/README.md).
 
 ## Status
 
-Phase 1 (static and architecture gates) is done, and the bounded-command runner (`agentctl run`) from phase 4 is in. Enforced today: the lint rules in `.golangci.yml`, the layer rules in `arch-go.yml`, and the analyzers in `tools/analyzers`, each proven by a fixture, plus Markdown style (one paragraph per line). The agent guard (below) is in. Not built yet: goroutine-leak checks, the database gates, the pprof loop, and the debt loop. Everything marked "planned" below has no enforcer yet. Do not report a rule as enforced unless a tool in this repo checks it.
+Phase 1 (static and architecture gates) is done, and the bounded-command runner (`agentctl run`) from phase 4 is in. Enforced today: the lint rules in `.golangci.yml`, the layer rules in `arch-go.yml`, and the analyzers in `tools/analyzers`, each proven by a fixture, plus Markdown style (one paragraph per line). The agent guard (below) is in. The pprof diagnosis loop (`agentctl perf`, ADR-0006) is in. Not built yet: goroutine-leak checks in tests, the database gates, the pprof loop, and the debt loop. Everything marked "planned" below has no enforcer yet. Do not report a rule as enforced unless a tool in this repo checks it.
 
 ## How to work
 
@@ -24,6 +24,7 @@ Run from the repository root. There is no Make; `agentctl` is the command surfac
 | Install the git hooks (once per clone)                            | `lefthook install`                                                                           |
 | Check the toolchain and pinned tools                              | `go run ./tools/agentctl doctor` (`--json` for machines)                                   |
 | Prove every rule fires on its fixture                             | `go run ./tools/agentctl rules test`                                                         |
+| Find what owns the time, memory, locks, or goroutines | `go run ./tools/agentctl perf capture --url http://127.0.0.1:<pprof port>` while load runs; `perf analyze [--base before.pprof] <file>` for one profile (skill: `perf-diagnose`) |
 | Run anything that could hang                                      | `go run ./tools/agentctl run -- <command> [args...]` (`--timeout`, `--idle`, `--name`) |
 | Tests (the TDD loop)                                              | `go test -race -timeout 120s -count=1 ./tools/<package>/`                                    |
 | Format Go (apply)                                                 | `cd tools && golangci-lint fmt ./...`                                                        |
@@ -35,6 +36,7 @@ Two modules joined by `go.work`: the root module (services, platform, contracts,
 ## Hard rules
 
 - **Test first.** No production code without a test that failed first, for the right reason.
+- **Never optimise without a profile.** Follow the `perf-diagnose` skill in `.claude/skills/`: capture, read the findings, make one change, capture again, and quote the numbers before and after.
 - **Evidence, not claims.** "Tests pass" means you ran them and saw the result. Name every step you skipped and why.
 - **Never weaken a gate to make a change pass.** `.golangci.yml`, `arch-go.yml`, and everything under `testdata/` are the rules that judge you: change them only with the user's explicit approval. Fix the cause instead.
 - **Every rule has a fixture.** A new or changed rule gets a violation fixture in `testdata/violations/<id>/` (with a `rule.json` naming the enforcer and the text it must report) and `rules test` must stay green. The compliant twin in `testdata/clean/` must stay free of findings.

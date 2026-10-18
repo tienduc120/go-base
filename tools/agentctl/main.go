@@ -33,6 +33,7 @@ commands:
   commitmsg <file>  check a commit message (called by the commit-msg hook)
   run -- <command>  run a command under a deadline and idle limit, killing its whole process tree
   fmt md            put every Markdown paragraph and list item on one line
+  perf analyze|capture  find which function owns the time, memory, locks, or goroutines (pprof)
   hook <event>      guard for agent tool calls: pre-edit or pre-bash (reads the tool call as JSON on stdin)
   help              show this text
 `
@@ -87,6 +88,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, env envir
 		return runFmt(args[1:], stdout, stderr, env)
 	case "hook":
 		return runHook(ctx, args[1:], stderr, env)
+	case "perf":
+		return runPerf(ctx, args[1:], stdout, stderr, env)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(stdout, usage)
 		return exitOK

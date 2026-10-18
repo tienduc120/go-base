@@ -2,7 +2,10 @@ module github.com/tienduc120/go-base/tools
 
 go 1.27.2
 
-require golang.org/x/tools v0.52.0
+require (
+	github.com/google/pprof v0.0.0-20261016150608-1facf8f91b50
+	golang.org/x/tools v0.52.0
+)
 
 require (
 	golang.org/x/mod v0.42.0 // indirect

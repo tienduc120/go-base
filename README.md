@@ -28,6 +28,7 @@ This base stands on public work. Material that is copied or adapted is listed in
 
 - The Go team and community: the language, toolchain, standard library, `go vet`, and [golang.org/x/tools](https://pkg.go.dev/golang.org/x/tools) (the analysis framework behind our custom analyzers).
 - Developer tools we run, not copy: [golangci-lint](https://github.com/golangci/golangci-lint), [gofumpt](https://github.com/mvdan/gofumpt), [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck), [sqlc](https://github.com/sqlc-dev/sqlc), [buf](https://github.com/bufbuild/buf) (Buf Technologies), [lefthook](https://github.com/evilmartians/lefthook) (Evil Martians), [arch-go](https://github.com/arch-go/arch-go).
+- [google/pprof](https://github.com/google/pprof) (Apache-2.0): the profile library behind `agentctl perf`. Our analyzer charges each sample to the nearest function in our own code and diffs snapshots on top of it.
 - [golangci-lint-config](https://github.com/maratori/golangci-lint-config) by maratori (MIT): `.golangci.yml` is adapted from it, with the license text kept in [LICENSES/](LICENSES/maratori-golangci-lint-config.txt).
 - Evaluated, not adopted: [go-arch-lint](https://github.com/fe3dback/go-arch-lint) by fe3dback. It informed the choice of arch-go; thank you.
 
