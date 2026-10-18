@@ -5,18 +5,15 @@
 
 ## Context
 
-Gates that run only when someone remembers them are skipped by the author who most needs them. Git hooks are the one
-layer every tool and every human passes through, whether or not their tool supports agent hooks.
+Gates that run only when someone remembers them are skipped by the author who most needs them. Git hooks are the one layer every tool and every human passes through, whether or not their tool supports agent hooks.
 
 ## Decision
 
 1. **lefthook** manages the hooks (`lefthook.yml`): it is a single Go binary and the same on Windows and Linux.
 2. **pre-commit** runs `agentctl verify` (about 12 seconds): vet, analyzers, strict lint, race tests, layer rules.
-3. **commit-msg** runs `agentctl commitmsg`: Conventional Commits, imperative, lowercase subject, no trailing period,
-   at most 72 characters, every problem reported at once.
+3. **commit-msg** runs `agentctl commitmsg`: Conventional Commits, imperative, lowercase subject, no trailing period, at most 72 characters, every problem reported at once.
 4. **pre-push** runs `agentctl verify --full`: adds govulncheck and the rules proof.
-5. Hooks are installed per clone with `lefthook install`. `--no-verify` is forbidden by `AGENTS.md`; the hooks are a
-   guard rail, not a security boundary, so CI must run the same `verify --full` once a pipeline exists.
+5. Hooks are installed per clone with `lefthook install`. `--no-verify` is forbidden by `AGENTS.md`; the hooks are a guard rail, not a security boundary, so CI must run the same `verify --full` once a pipeline exists.
 
 ## Consequences
 

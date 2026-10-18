@@ -1,8 +1,6 @@
 # go-base
 
-A Go base for strict DDD and clean-architecture cloud microservices that AI agents extend. It ships almost no
-features. It ships enforcement: rules a tool checks, skills an agent follows, and feedback loops that let an agent
-find and fix performance problems and tech debt on its own.
+A Go base for strict DDD and clean-architecture cloud microservices that AI agents extend. It ships almost no features. It ships enforcement: rules a tool checks, skills an agent follows, and feedback loops that let an agent find and fix performance problems and tech debt on its own.
 
 Status: foundations. Read [AGENTS.md](AGENTS.md) first, then [docs/adr/](docs/adr/README.md).
 
@@ -24,23 +22,14 @@ MIT, Copyright (c) 2026 Luu Tien Duc. Free to use, modify, and use commercially.
 
 ## Credits
 
-This base stands on public work. Material that is copied or adapted is listed in [NOTICE.md](NOTICE.md) with its
-license; this section thanks everyone whose work shaped a decision, whether or not any text was copied. A source
-moves from "referenced" to "used" the moment code or configuration from it lands here.
+This base stands on public work. Material that is copied or adapted is listed in [NOTICE.md](NOTICE.md) with its license; this section thanks everyone whose work shaped a decision, whether or not any text was copied. A source moves from "referenced" to "used" the moment code or configuration from it lands here.
 
 **Used**
 
-- The Go team and community: the language, toolchain, standard library, `go vet`, and
-  [golang.org/x/tools](https://pkg.go.dev/golang.org/x/tools) (the analysis framework behind our custom analyzers).
-- Developer tools we run, not copy: [golangci-lint](https://github.com/golangci/golangci-lint),
-  [gofumpt](https://github.com/mvdan/gofumpt), [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck),
-  [sqlc](https://github.com/sqlc-dev/sqlc), [buf](https://github.com/bufbuild/buf) (Buf Technologies),
-  [lefthook](https://github.com/evilmartians/lefthook) (Evil Martians),
-  [arch-go](https://github.com/arch-go/arch-go).
-- [golangci-lint-config](https://github.com/maratori/golangci-lint-config) by maratori (MIT): `.golangci.yml` is
-  adapted from it, with the license text kept in [LICENSES/](LICENSES/maratori-golangci-lint-config.txt).
-- Evaluated, not adopted: [go-arch-lint](https://github.com/fe3dback/go-arch-lint) by fe3dback. It informed the
-  choice of arch-go; thank you.
+- The Go team and community: the language, toolchain, standard library, `go vet`, and [golang.org/x/tools](https://pkg.go.dev/golang.org/x/tools) (the analysis framework behind our custom analyzers).
+- Developer tools we run, not copy: [golangci-lint](https://github.com/golangci/golangci-lint), [gofumpt](https://github.com/mvdan/gofumpt), [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck), [sqlc](https://github.com/sqlc-dev/sqlc), [buf](https://github.com/bufbuild/buf) (Buf Technologies), [lefthook](https://github.com/evilmartians/lefthook) (Evil Martians), [arch-go](https://github.com/arch-go/arch-go).
+- [golangci-lint-config](https://github.com/maratori/golangci-lint-config) by maratori (MIT): `.golangci.yml` is adapted from it, with the license text kept in [LICENSES/](LICENSES/maratori-golangci-lint-config.txt).
+- Evaluated, not adopted: [go-arch-lint](https://github.com/fe3dback/go-arch-lint) by fe3dback. It informed the choice of arch-go; thank you.
 
 **Referenced for design** (all MIT unless noted; no code copied yet)
 
@@ -56,5 +45,4 @@ moves from "referenced" to "used" the moment code or configuration from it lands
 | [agents-md-cookbook](https://github.com/Taiizor/agents-md-cookbook) | Taiizor | shape of a Go `AGENTS.md` |
 | [buf](https://github.com/bufbuild/buf) (Apache-2.0) | Buf Technologies | breaking-change detection as a contract gate |
 
-Also: [AGENTS.md](https://agents.md) as the shared agent instruction format, and Factory's article
-[Using linters to direct agents](https://www.factory.ai/using-linters-to-direct-agents).
+Also: [AGENTS.md](https://agents.md) as the shared agent instruction format, and Factory's article [Using linters to direct agents](https://www.factory.ai/using-linters-to-direct-agents).
