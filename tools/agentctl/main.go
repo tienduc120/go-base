@@ -33,6 +33,7 @@ commands:
   commitmsg <file>  check a commit message (called by the commit-msg hook)
   run -- <command>  run a command under a deadline and idle limit, killing its whole process tree
   fmt md            put every Markdown paragraph and list item on one line
+  debt scan|confirm|next|baseline|check|prune  find, triage, and pay off the debt the gates allow
   perf analyze|capture  find which function owns the time, memory, locks, or goroutines (pprof)
   hook <event>      guard for agent tool calls: pre-edit or pre-bash (reads the tool call as JSON on stdin)
   help              show this text
@@ -44,6 +45,7 @@ type environment struct {
 	procRunner proc.Runner
 	stdin      io.Reader
 	getenv     func(string) string
+	now        func() time.Time
 	cwd        string
 }
 
@@ -81,7 +83,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, env envir
 	case "verify":
 		return runVerify(ctx, args[1:], stdout, stderr, env)
 	case "commitmsg":
-		return runCommitmsg(args[1:], stderr)
+		return runCommitmsg(ctx, args[1:], stderr, env)
 	case "run":
 		return runRun(ctx, args[1:], stdout, stderr, env)
 	case "fmt":
@@ -90,6 +92,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, env envir
 		return runHook(ctx, args[1:], stderr, env)
 	case "perf":
 		return runPerf(ctx, args[1:], stdout, stderr, env)
+	case "debt":
+		return runDebt(ctx, args[1:], stdout, stderr, env)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(stdout, usage)
 		return exitOK

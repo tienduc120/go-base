@@ -6,7 +6,7 @@ The decisions behind it: [docs/adr/](docs/adr/README.md).
 
 ## Status
 
-Phase 1 (static and architecture gates) is done, and the bounded-command runner (`agentctl run`) from phase 4 is in. Enforced today: the lint rules in `.golangci.yml`, the layer rules in `arch-go.yml`, and the analyzers in `tools/analyzers`, each proven by a fixture, plus Markdown style (one paragraph per line). The agent guard (below) is in. The pprof diagnosis loop (`agentctl perf`, ADR-0006) is in. Goroutine-leak checks in tests (ADR-0007) are in. Not built yet: the database gates, a scenario runner that drives load for you, and the debt loop. Everything marked "planned" below has no enforcer yet. Do not report a rule as enforced unless a tool in this repo checks it.
+Phase 1 (static and architecture gates) is done, and the bounded-command runner (`agentctl run`) from phase 4 is in. Enforced today: the lint rules in `.golangci.yml`, the layer rules in `arch-go.yml`, and the analyzers in `tools/analyzers`, each proven by a fixture, plus Markdown style (one paragraph per line). The agent guard (below) is in. The pprof diagnosis loop (`agentctl perf`, ADR-0006) is in. Goroutine-leak checks in tests (ADR-0007) are in. The technical-debt loop (`agentctl debt`, ADR-0008) is in; its ratchet step is ready but not yet run by `verify` (see the ADR). Not built yet: the database gates, a scenario runner that drives load for you, and a service template. Everything marked "planned" below has no enforcer yet. Do not report a rule as enforced unless a tool in this repo checks it.
 
 ## How to work
 
@@ -25,6 +25,7 @@ Run from the repository root. There is no Make; `agentctl` is the command surfac
 | Check the toolchain and pinned tools                              | `go run ./tools/agentctl doctor` (`--json` for machines)                                   |
 | Prove every rule fires on its fixture                             | `go run ./tools/agentctl rules test`                                                         |
 | Find what owns the time, memory, locks, or goroutines | `go run ./tools/agentctl perf capture --url http://127.0.0.1:<pprof port>` while load runs; `perf analyze [--base before.pprof] <file>` for one profile (skill: `perf-diagnose`) |
+| Find, triage, and pay off the debt the gates allow | `go run ./tools/agentctl debt scan`, then `debt confirm <id>`, `debt next`, `debt check` (skill: `debt-recovery`) |
 | Run anything that could hang                                      | `go run ./tools/agentctl run -- <command> [args...]` (`--timeout`, `--idle`, `--name`) |
 | Tests (the TDD loop)                                              | `go test -race -timeout 120s -count=1 ./tools/<package>/`                                    |
 | Format Go (apply)                                                 | `cd tools && golangci-lint fmt ./...`                                                        |
@@ -37,6 +38,7 @@ Two modules joined by `go.work`: the root module (services, platform, contracts,
 
 - **Test first.** No production code without a test that failed first, for the right reason.
 - **A package that starts goroutines, subprocesses, or servers checks for leaks.** Its `TestMain` calls `goleak.VerifyTestMain(m)` (ADR-0007), so a test that leaves something running fails the package. Never `time.Sleep` in a test.
+- **New debt is triaged, not hidden.** A `//nolint`, a TODO with no reference, or a function near the complexity limit is debt: fix the cause, or ask the user to accept it with a reason and an expiry. A `refactor:` commit may only add tests, never edit one (the commit-msg hook enforces it). Follow the `debt-recovery` skill.
 - **Never optimise without a profile.** Follow the `perf-diagnose` skill in `.claude/skills/`: capture, read the findings, make one change, capture again, and quote the numbers before and after.
 - **Evidence, not claims.** "Tests pass" means you ran them and saw the result. Name every step you skipped and why.
 - **Never weaken a gate to make a change pass.** `.golangci.yml`, `arch-go.yml`, and everything under `testdata/` are the rules that judge you: change them only with the user's explicit approval. Fix the cause instead.
