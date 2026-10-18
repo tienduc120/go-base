@@ -31,6 +31,7 @@ commands:
   rules test        prove every rule fires on its violation fixture
   verify [--full]   run the gates; --full adds govulncheck and rules test
   commitmsg <file>  check a commit message (called by the commit-msg hook)
+  run -- <command>  run a command under a deadline and idle limit, killing its whole process tree
   help              show this text
 `
 
@@ -69,6 +70,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, env envir
 		return runVerify(ctx, args[1:], stdout, stderr, env)
 	case "commitmsg":
 		return runCommitmsg(args[1:], stderr)
+	case "run":
+		return runRun(ctx, args[1:], stdout, stderr, env)
 	case "help", "-h", "--help":
 		_, _ = fmt.Fprint(stdout, usage)
 		return exitOK
