@@ -36,6 +36,12 @@ func Register[[.Aggregate]](id [[.Aggregate]]ID, name string, createdAt time.Tim
 	return [[.Aggregate]]{id: id, name: name, createdAt: createdAt}, nil
 }
 
+// Restore[[.Aggregate]] rebuilds a stored value for a repository. It was valid when it was saved, so nothing is checked
+// again; new values come only from Register[[.Aggregate]].
+func Restore[[.Aggregate]](id [[.Aggregate]]ID, name string, createdAt time.Time) [[.Aggregate]] {
+	return [[.Aggregate]]{id: id, name: name, createdAt: createdAt}
+}
+
 func (a [[.Aggregate]]) ID() [[.Aggregate]]ID { return a.id }
 
 func (a [[.Aggregate]]) Name() string { return a.name }

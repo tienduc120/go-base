@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"[[.Module]]/services/[[.Service]]/internal/application"
 	"[[.Module]]/services/[[.Service]]/internal/domain"
 )
 
@@ -25,6 +26,9 @@ func (r *[[.Aggregate]]Repository) Save(ctx context.Context, agg domain.[[.Aggre
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if _, taken := r.items[agg.ID()]; taken {
+		return fmt.Errorf("save [[.AggregateWords]] %s: %w", agg.ID(), application.ErrAlreadyExists)
+	}
 	r.items[agg.ID()] = agg
 	return nil
 }

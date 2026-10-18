@@ -58,6 +58,7 @@ func TestCreateMapsFailuresToStatusCodes(t *testing.T) {
 	}{
 		"malformed body":  {body: `{`, want: http.StatusBadRequest},
 		"invalid command": {body: `{}`, err: application.ErrInvalidCommand, want: http.StatusBadRequest},
+		"already exists":  {body: `{}`, err: application.ErrAlreadyExists, want: http.StatusConflict},
 		"storage failure": {
 			body: `{}`,
 			err:  errors.New("dial tcp 10.0.0.5:5432: connection refused"),

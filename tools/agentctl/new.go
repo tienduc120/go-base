@@ -1,17 +1,24 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/tienduc120/go-base/tools/internal/doctor"
+	"github.com/tienduc120/go-base/tools/internal/proc"
 	"github.com/tienduc120/go-base/tools/internal/scaffold"
 )
+
+const sqlcTimeout = time.Minute
 
 const newUsage = `usage: agentctl new service <name> [--aggregate Name]
 
@@ -21,7 +28,7 @@ const newUsage = `usage: agentctl new service <name> [--aggregate Name]
             Refuses to touch a service that already exists.
 `
 
-func runNew(args []string, stdout, stderr io.Writer, env environment) int {
+func runNew(ctx context.Context, args []string, stdout, stderr io.Writer, env environment) int {
 	if len(args) == 0 || args[0] != "service" {
 		_, _ = fmt.Fprint(stderr, newUsage)
 		return exitUsage
@@ -51,12 +58,28 @@ func runNew(args []string, stdout, stderr io.Writer, env environment) int {
 		_, _ = fmt.Fprintln(stderr, "agentctl new:", err)
 		return exitFail
 	}
-
 	for _, f := range files {
 		_, _ = fmt.Fprintln(stdout, "created", f.Path)
 	}
-	_, _ = fmt.Fprintf(stdout, "\nservices/%s is ready. Next: agentctl verify, then replace the in-memory repository "+
-		"in cmd/%s-api/main.go with a real adapter when storage arrives.\n", req.name, req.name)
+
+	// The queries' Go code is sqlc's output, so the service does not compile until it has run.
+	pgDir := filepath.Join(root, "services", req.name, filepath.FromSlash(scaffold.PostgresDir))
+	if err = generateQueries(ctx, env, pgDir); err != nil {
+		_, _ = fmt.Fprintln(stderr, "agentctl new: the files are written, but", err)
+		return exitFail
+	}
+	_, _ = fmt.Fprintln(
+		stdout,
+		"generated the query code in",
+		path.Join("services", req.name, scaffold.PostgresDir, "db"),
+	)
+	_, _ = fmt.Fprintf(
+		stdout,
+		"\nservices/%s is ready. Next: agentctl verify. It runs in memory until DATABASE_URL is set; "+
+			"agentctl db test ./services/%s/... runs the Postgres adapter against a real server.\n",
+		req.name,
+		req.name,
+	)
 	return exitOK
 }
 
@@ -85,6 +108,26 @@ func parseNewService(args []string, stderr io.Writer) (newRequest, bool) {
 		return newRequest{}, false
 	}
 	return newRequest{name: name, aggregate: *aggregateFlag}, true
+}
+
+// generateQueries runs sqlc in the service's postgres directory.
+func generateQueries(ctx context.Context, env environment, dir string) error {
+	var runner proc.Runner = proc.Exec{}
+	if env.procRunner != nil {
+		runner = env.procRunner
+	}
+	res, err := runner.Run(ctx, proc.Spec{Dir: dir, Name: "sqlc", Args: []string{"generate"}, Timeout: sqlcTimeout})
+	switch {
+	case errors.Is(err, exec.ErrNotFound):
+		return errors.New(
+			"sqlc is not installed: run `agentctl doctor` for the install command, then `sqlc generate` in " + dir,
+		)
+	case err != nil:
+		return err
+	case res.TimedOut || res.ExitCode != 0:
+		return fmt.Errorf("sqlc generate failed:\n%s", strings.TrimSpace(res.Output))
+	}
+	return nil
 }
 
 // rootModule reads the module path of the repository's own (root) module, which is what a service's imports start with.

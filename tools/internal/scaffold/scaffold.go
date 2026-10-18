@@ -38,6 +38,10 @@ const (
 	rightDelim = "]]"
 )
 
+// PostgresDir is where a service keeps its migrations, queries, sqlc configuration, and Postgres adapter, relative to
+// the service. sqlc writes its generated Go into the db directory beneath it.
+const PostgresDir = "internal/infrastructure/postgres"
+
 // Spec says what to generate.
 type Spec struct {
 	// Module is the root module path the service's imports are rooted at.
@@ -60,9 +64,10 @@ type data struct {
 	Module    string
 	Service   string
 	Aggregate string
-	// AggregateWords is the spaced form for messages and Route the plural path segment.
+	// AggregateWords is the spaced form for messages, Route the plural path segment, and Table the plural table name.
 	AggregateWords string
 	Route          string
+	Table          string
 }
 
 // Generate renders every file of the service. It does not touch the disk.
@@ -89,11 +94,13 @@ func Generate(spec Spec) ([]File, error) {
 		if execErr := tmpl.Execute(&buf, d); execErr != nil {
 			return nil, fmt.Errorf("render %s: %w", entry.source, execErr)
 		}
-		formatted, fmtErr := format.Source(buf.Bytes())
-		if fmtErr != nil {
-			return nil, fmt.Errorf("render %s produced invalid Go: %w", entry.source, fmtErr)
+		content := buf.Bytes()
+		if strings.HasSuffix(entry.dest, ".go") {
+			if content, err = format.Source(content); err != nil {
+				return nil, fmt.Errorf("render %s produced invalid Go: %w", entry.source, err)
+			}
 		}
-		files = append(files, File{Path: path.Join("services", d.Service, entry.dest), Content: formatted})
+		files = append(files, File{Path: path.Join("services", d.Service, entry.dest), Content: content})
 	}
 	return files, nil
 }
@@ -111,6 +118,11 @@ func layout(d data) []layoutEntry {
 		{"application_test.go", "internal/application/create_" + snake + "_test.go"},
 		{"repository.go", "internal/infrastructure/memory/" + snake + "_repository.go"},
 		{"repository_test.go", "internal/infrastructure/memory/" + snake + "_repository_test.go"},
+		{"migration.sql", PostgresDir + "/migrations/0001_init.sql"},
+		{"queries.sql", PostgresDir + "/queries/" + snake + ".sql"},
+		{"sqlc.yaml", PostgresDir + "/sqlc.yaml"},
+		{"pg_repository.go", PostgresDir + "/" + snake + "_repository.go"},
+		{"pg_repository_test.go", PostgresDir + "/" + snake + "_repository_test.go"},
 		// Not "httpapi": Bitdefender quarantines a test binary of exactly that name.
 		{"handler.go", "internal/interfaces/rest/handler.go"},
 		{"handler_test.go", "internal/interfaces/rest/handler_test.go"},
@@ -141,6 +153,7 @@ func newData(spec Spec) (data, error) {
 		Aggregate:      aggregate,
 		AggregateWords: words,
 		Route:          plural(strings.ReplaceAll(snakeOf(aggregate), "_", "-")),
+		Table:          plural(snakeOf(aggregate)),
 	}, nil
 }
 

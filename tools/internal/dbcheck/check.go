@@ -121,6 +121,11 @@ func checkService(
 	if err != nil {
 		return err
 	}
+	stale, err := checkGenerated(ctx, runner, root, svc)
+	if err != nil {
+		return err
+	}
+	report.Findings = append(report.Findings, stale...)
 	for i := range queries {
 		c, ok := compiled[queries[i].Name]
 		if !ok {
@@ -139,6 +144,36 @@ func checkService(
 		return nil
 	}
 	return planService(ctx, pg, svc, queries, report)
+}
+
+// checkGenerated has sqlc compare the generated code with what the queries and migrations now produce. A service with
+// no sqlc.yaml of its own has no generated code to compare.
+func checkGenerated(ctx context.Context, runner proc.Runner, root string, svc serviceDB) ([]Finding, error) {
+	config := filepath.Join(svc.dir, "sqlc.yaml")
+	_, err := os.Stat(config)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("check sqlc.yaml: %w", err)
+	}
+	res, err := runner.Run(ctx, proc.Spec{Dir: svc.dir, Name: "sqlc", Args: []string{"diff"}, Timeout: sqlcTimeout})
+	if err != nil {
+		return nil, fmt.Errorf("sqlc diff: %w", err)
+	}
+	if !res.TimedOut && res.ExitCode == 0 {
+		return nil, nil
+	}
+
+	rel, relErr := filepath.Rel(root, config)
+	if relErr != nil {
+		rel = config
+	}
+	return []Finding{{
+		File: filepath.ToSlash(rel), Line: 1, Query: "sqlc generate", Rule: RuleGeneratedStale,
+		Message: "the generated code differs from what sqlc makes of the queries and migrations; " +
+			"run `sqlc generate` in " + filepath.ToSlash(filepath.Dir(rel)) + " and commit the result.",
+	}}, nil
 }
 
 func readQueries(root string, svc serviceDB) ([]Query, error) {

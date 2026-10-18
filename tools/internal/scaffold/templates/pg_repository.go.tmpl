@@ -1,0 +1,58 @@
+// Package postgres is the Postgres adapter for the [[.Service]] ports. sqlc generates the queries in db from the files
+// in queries and migrations; run `sqlc generate` here after changing either.
+package postgres
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+
+	"[[.Module]]/services/[[.Service]]/internal/application"
+	"[[.Module]]/services/[[.Service]]/internal/domain"
+	"[[.Module]]/services/[[.Service]]/internal/infrastructure/postgres/db"
+)
+
+// uniqueViolation is the SQLSTATE Postgres reports for a duplicate key.
+const uniqueViolation = "23505"
+
+type [[.Aggregate]]Repository struct {
+	queries *db.Queries
+}
+
+// New[[.Aggregate]]Repository takes a pool or a transaction; build the pool with platform/postgres.Connect.
+func New[[.Aggregate]]Repository(conn db.DBTX) *[[.Aggregate]]Repository {
+	return &[[.Aggregate]]Repository{queries: db.New(conn)}
+}
+
+func (r *[[.Aggregate]]Repository) Save(ctx context.Context, agg domain.[[.Aggregate]]) error {
+	err := r.queries.Create[[.Aggregate]](ctx, db.Create[[.Aggregate]]Params{
+		ID:        string(agg.ID()),
+		Name:      agg.Name(),
+		CreatedAt: agg.CreatedAt(),
+	})
+	if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == uniqueViolation {
+		return fmt.Errorf("save [[.AggregateWords]] %s: %w", agg.ID(), application.ErrAlreadyExists)
+	}
+	if err != nil {
+		return fmt.Errorf("save [[.AggregateWords]]: %w", err)
+	}
+	return nil
+}
+
+// Find is for tests and local runs; the application port declares only what a use case needs.
+func (r *[[.Aggregate]]Repository) Find(
+	ctx context.Context,
+	id domain.[[.Aggregate]]ID,
+) (domain.[[.Aggregate]], bool, error) {
+	row, err := r.queries.Get[[.Aggregate]](ctx, string(id))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.[[.Aggregate]]{}, false, nil
+	}
+	if err != nil {
+		return domain.[[.Aggregate]]{}, false, fmt.Errorf("find [[.AggregateWords]]: %w", err)
+	}
+	return domain.Restore[[.Aggregate]](domain.[[.Aggregate]]ID(row.ID), row.Name, row.CreatedAt), true, nil
+}

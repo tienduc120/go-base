@@ -61,7 +61,7 @@ func stage(t *testing.T) (string, []string) {
 	t.Helper()
 	root := t.TempDir()
 
-	place := func(id, queries string) {
+	place := func(id, queries string) string {
 		pg := filepath.Join(root, "services", id, "internal", "infrastructure", "postgres")
 		copyFile(t, queries, filepath.Join(pg, "queries", "queries.sql"))
 		copyFile(
@@ -69,6 +69,7 @@ func stage(t *testing.T) (string, []string) {
 			filepath.Join("testdata", "schema", "0001_init.sql"),
 			filepath.Join(pg, "migrations", "0001_init.sql"),
 		)
+		return pg
 	}
 	place("clean", filepath.Join("testdata", "clean", "queries.sql"))
 	place("allowed", filepath.Join("testdata", "allowed", "queries.sql"))
@@ -79,7 +80,12 @@ func stage(t *testing.T) (string, []string) {
 	}
 	var violations []string
 	for _, e := range entries {
-		place(e.Name(), filepath.Join("testdata", "violations", e.Name(), "queries.sql"))
+		dir := filepath.Join("testdata", "violations", e.Name())
+		pg := place(e.Name(), filepath.Join(dir, "queries.sql"))
+		// A fixture may bring its own sqlc.yaml, for the rules about generated code.
+		if _, statErr := os.Stat(filepath.Join(dir, "sqlc.yaml")); statErr == nil {
+			copyFile(t, filepath.Join(dir, "sqlc.yaml"), filepath.Join(pg, "sqlc.yaml"))
+		}
 		violations = append(violations, e.Name())
 	}
 	return root, violations

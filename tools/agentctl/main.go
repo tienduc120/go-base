@@ -97,7 +97,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, env envir
 	case "debt":
 		return runDebt(ctx, args[1:], stdout, stderr, env)
 	case "new":
-		return runNew(args[1:], stdout, stderr, env)
+		return runNew(ctx, args[1:], stdout, stderr, env)
 	case "db":
 		return runDB(ctx, args[1:], stdout, stderr, env)
 	case "help", "-h", "--help":

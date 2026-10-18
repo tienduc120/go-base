@@ -43,6 +43,8 @@ func NewHandler(creator Creator) http.Handler {
 		switch {
 		case errors.Is(err, application.ErrInvalidCommand):
 			http.Error(w, err.Error(), http.StatusBadRequest)
+		case errors.Is(err, application.ErrAlreadyExists):
+			http.Error(w, "already exists", http.StatusConflict)
 		case err != nil:
 			http.Error(w, "internal error", http.StatusInternalServerError)
 		default:

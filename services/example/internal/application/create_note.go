@@ -10,7 +10,11 @@ import (
 	"github.com/tienduc120/go-base/services/example/internal/domain"
 )
 
-var ErrInvalidCommand = errors.New("invalid command")
+var (
+	ErrInvalidCommand = errors.New("invalid command")
+	// ErrAlreadyExists is what a repository returns when the ID is taken, so callers need not know the storage.
+	ErrAlreadyExists = errors.New("already exists")
+)
 
 // NoteRepository is a port: the application declares it and infrastructure implements it.
 type NoteRepository interface {

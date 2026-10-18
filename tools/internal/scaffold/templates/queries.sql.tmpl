@@ -1,0 +1,5 @@
+-- name: Create[[.Aggregate]] :exec
+INSERT INTO [[.Table]] (id, name, created_at) VALUES ($1, $2, $3);
+
+-- name: Get[[.Aggregate]] :one
+SELECT id, name, created_at FROM [[.Table]] WHERE id = $1;

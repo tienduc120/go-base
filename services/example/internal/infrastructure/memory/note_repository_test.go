@@ -2,9 +2,11 @@ package memory_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/tienduc120/go-base/services/example/internal/application"
 	"github.com/tienduc120/go-base/services/example/internal/domain"
 	"github.com/tienduc120/go-base/services/example/internal/infrastructure/memory"
 )
@@ -22,31 +24,37 @@ func TestSaveThenFind(t *testing.T) {
 	t.Parallel()
 
 	repo := memory.NewNoteRepository()
-	if err := repo.Save(t.Context(), registered(t, "id-1", "first")); err != nil {
-		t.Fatal(err)
+	for id, name := range map[string]string{"id-1": "first", "id-2": "second"} {
+		if err := repo.Save(t.Context(), registered(t, id, name)); err != nil {
+			t.Fatal(err)
+		}
 	}
 
-	got, ok := repo.Find("id-1")
-	if !ok || got.Name() != "first" {
-		t.Errorf("Find = %+v, %v, want the saved note", got, ok)
+	for id, name := range map[string]string{"id-1": "first", "id-2": "second"} {
+		got, ok := repo.Find(domain.NoteID(id))
+		if !ok || got.Name() != name {
+			t.Errorf("Find(%s) = %+v, %v, want the note saved as %q", id, got, ok, name)
+		}
 	}
 	if _, found := repo.Find("missing"); found {
 		t.Error("Find invented a note that was never saved")
 	}
 }
 
-func TestSaveReplacesTheSameID(t *testing.T) {
+func TestSaveRefusesATakenID(t *testing.T) {
 	t.Parallel()
 
 	repo := memory.NewNoteRepository()
-	for _, name := range []string{"first", "second"} {
-		if err := repo.Save(t.Context(), registered(t, "id-1", name)); err != nil {
-			t.Fatal(err)
-		}
+	if err := repo.Save(t.Context(), registered(t, "id-1", "first")); err != nil {
+		t.Fatal(err)
 	}
 
-	if got, _ := repo.Find("id-1"); got.Name() != "second" {
-		t.Errorf("name = %q, want the latest save to win", got.Name())
+	err := repo.Save(t.Context(), registered(t, "id-1", "second"))
+	if !errors.Is(err, application.ErrAlreadyExists) {
+		t.Errorf("err = %v, want ErrAlreadyExists", err)
+	}
+	if got, _ := repo.Find("id-1"); got.Name() != "first" {
+		t.Errorf("name = %q: a refused save must leave the stored value alone", got.Name())
 	}
 }
 

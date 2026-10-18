@@ -13,8 +13,10 @@ import (
 	"github.com/tienduc120/go-base/platform/clock"
 	"github.com/tienduc120/go-base/platform/debugserver"
 	"github.com/tienduc120/go-base/platform/httpserver"
+	"github.com/tienduc120/go-base/platform/postgres"
 	"github.com/tienduc120/go-base/services/example/internal/application"
 	"github.com/tienduc120/go-base/services/example/internal/infrastructure/memory"
+	pgstore "github.com/tienduc120/go-base/services/example/internal/infrastructure/postgres"
 	"github.com/tienduc120/go-base/services/example/internal/interfaces/rest"
 )
 
@@ -26,12 +28,15 @@ const (
 type config struct {
 	addr      string
 	debugAddr string
+	// databaseURL selects Postgres; empty keeps everything in memory, which suits a first run and most tests.
+	databaseURL string
 }
 
 func configFrom(getenv func(string) string) config {
 	return config{
-		addr:      valueOr(getenv("ADDR"), defaultAddr),
-		debugAddr: valueOr(getenv("DEBUG_ADDR"), defaultDebugAddr),
+		addr:        valueOr(getenv("ADDR"), defaultAddr),
+		debugAddr:   valueOr(getenv("DEBUG_ADDR"), defaultDebugAddr),
+		databaseURL: getenv("DATABASE_URL"),
 	}
 }
 
@@ -50,7 +55,7 @@ func runMain() int {
 	defer stop()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	svc, err := newService(ctx, configFrom(os.Getenv))
+	svc, err := newService(ctx, logger, configFrom(os.Getenv))
 	if err != nil {
 		logger.ErrorContext(ctx, "start", "error", err)
 		return 1
@@ -63,30 +68,60 @@ func runMain() int {
 	return 0
 }
 
-// service owns both listeners. They are bound before anything runs, so a bad or taken address fails at startup.
+// service owns both listeners and the storage. The listeners are bound before anything runs, so a bad or taken
+// address fails at startup.
 type service struct {
 	api   *httpserver.Server
 	debug *debugserver.Server
+	// closeStorage releases the database pool, if there is one.
+	closeStorage func()
 }
 
-func newService(ctx context.Context, cfg config) (*service, error) {
-	// Swap the in-memory repository for a real adapter here when storage arrives; nothing else changes.
-	creator := application.NewCreateNote(memory.NewNoteRepository(), clock.System{})
-
-	api, err := httpserver.New(ctx, cfg.addr, rest.NewHandler(creator), httpserver.DefaultTimeouts())
+func newService(ctx context.Context, logger *slog.Logger, cfg config) (*service, error) {
+	repo, closeStorage, err := newRepository(ctx, logger, cfg)
 	if err != nil {
+		return nil, err
+	}
+	creator := application.NewCreateNote(repo, clock.System{})
+	handler := postgres.BudgetMiddleware(postgres.DefaultLimits(), logger)(rest.NewHandler(creator))
+
+	api, err := httpserver.New(ctx, cfg.addr, handler, httpserver.DefaultTimeouts())
+	if err != nil {
+		closeStorage()
 		return nil, fmt.Errorf("api listener: %w", err)
 	}
 	debug, err := debugserver.New(ctx, cfg.debugAddr)
 	if err != nil {
 		_ = api.Close()
+		closeStorage()
 		return nil, fmt.Errorf("debug listener: %w", err)
 	}
 	debugserver.EnableContentionProfiles()
-	return &service{api: api, debug: debug}, nil
+	return &service{api: api, debug: debug, closeStorage: closeStorage}, nil
+}
+
+// newRepository is the one place that knows which storage backs the service; nothing else changes between them.
+func newRepository(
+	ctx context.Context,
+	logger *slog.Logger,
+	cfg config,
+) (application.NoteRepository, func(), error) {
+	if cfg.databaseURL == "" {
+		return memory.NewNoteRepository(), func() {}, nil
+	}
+
+	dbCfg := postgres.DefaultConfig(cfg.databaseURL)
+	dbCfg.AppName = "example-api"
+	dbCfg.Logger = logger
+	pool, err := postgres.Connect(ctx, dbCfg)
+	if err != nil {
+		return nil, nil, fmt.Errorf("database: %w", err)
+	}
+	return pgstore.NewNoteRepository(pool), pool.Close, nil
 }
 
 // run serves until ctx ends or either server fails, and a failure of one stops the other.
 func (s *service) run(ctx context.Context) error {
+	defer s.closeStorage()
 	return async.Run(ctx, s.api.Run, s.debug.Run)
 }

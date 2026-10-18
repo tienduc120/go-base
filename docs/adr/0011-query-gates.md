@@ -16,12 +16,14 @@ ADR-0006 left two problems to the database layer: an N+1 is invisible to pprof, 
 3. **The rules live in `tools/internal/dbcheck`, not in `sqlc.yaml`.** A service cannot loosen them by editing its own configuration, and they can read both the source and the compiled text.
 4. **Plans are read on a throwaway Postgres.** Unless `--no-plan`, `db check` starts a container with no published port that removes itself after ten minutes even if `agentctl` is killed, applies each service's migrations to a database of its own, and runs `EXPLAIN (GENERIC_PLAN, FORMAT JSON)` on every query with sequential scans disabled for the session. Disabled, a sequential scan appears only when no index can serve the query, which an empty table would otherwise hide. The whole plan tree is walked, and an index read end to end only to filter by an unindexed column counts as a scan too, because it touches every row. A query Postgres cannot plan is a finding, not a pass.
 5. **A finding is accepted in the query file with a reason**: `-- agent:allow <rule>: <why>`. The output keeps listing accepted findings. An allow with no reason, or naming a rule that does not exist, is itself a finding. The debt loop counts every allow as a suppression, so it needs triage like a `//nolint` (ADR-0008).
-6. **Each rule has a fixture, proven against the real tools.** `tools/internal/dbcheck/testdata` holds one violating query file per rule, a compliant twin, and an accepted case. A test runs real `sqlc` and a real Postgres container over all of them. When either is missing the test skips with a loud message, unless `AGENTCTL_REQUIRE_DB` is set, which CI sets so an absent tool fails the build.
+6. **Generated code must match its queries.** For a service with a `sqlc.yaml`, `db check` runs `sqlc diff` and reports `generated-stale` when the committed code differs from what sqlc makes of the current queries and migrations. This finding is about a service, so it cannot be accepted with an allow.
+7. **Each rule has a fixture, proven against the real tools.** `tools/internal/dbcheck/testdata` holds one violating query file per rule, a compliant twin, and an accepted case. A test runs real `sqlc` and a real Postgres container over all of them. When either is missing the test skips with a loud message, unless `AGENTCTL_REQUIRE_DB` is set, which CI sets so an absent tool fails the build.
 
 ## Consequences
 
 - Positive: the failure modes that only show at scale fail at commit, with the line, the rule, and the fix. Plans are checked on the Postgres major version production runs, via `--image`.
 - Negative: the plan checks need Docker and add seconds to a run. A plan on an empty table proves the access path, not the cost; whether a query is fast at a million rows is for the load scenarios.
+- Negative: sqlc writes its own version into the generated code, so everyone must use the version `agentctl doctor` pins; a newer sqlc makes `generated-stale` fire until the code is regenerated and committed.
 - Neutral: migrations are forward-only. A mistake is fixed by a new migration, which suits expand-and-contract deploys.
 
 ## Alternatives considered

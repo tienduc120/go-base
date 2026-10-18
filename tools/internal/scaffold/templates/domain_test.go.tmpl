@@ -39,3 +39,14 @@ func TestRegister[[.Aggregate]]KeepsWhatItWasGiven(t *testing.T) {
 		t.Errorf("[[.AggregateWords]] does not hold the values it was registered with: %+v", got)
 	}
 }
+
+func TestRestore[[.Aggregate]]KeepsStoredValuesAsTheyAre(t *testing.T) {
+	t.Parallel()
+
+	createdAt := time.Date(2026, time.October, 18, 0, 0, 0, 0, time.UTC)
+	got := domain.Restore[[.Aggregate]]("id-1", "  stored as is  ", createdAt)
+
+	if got.ID() != "id-1" || got.Name() != "  stored as is  " || !got.CreatedAt().Equal(createdAt) {
+		t.Errorf("a stored value must come back exactly as it went in: %+v", got)
+	}
+}

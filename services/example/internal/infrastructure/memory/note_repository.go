@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/tienduc120/go-base/services/example/internal/application"
 	"github.com/tienduc120/go-base/services/example/internal/domain"
 )
 
@@ -25,6 +26,9 @@ func (r *NoteRepository) Save(ctx context.Context, agg domain.Note) error {
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if _, taken := r.items[agg.ID()]; taken {
+		return fmt.Errorf("save note %s: %w", agg.ID(), application.ErrAlreadyExists)
+	}
 	r.items[agg.ID()] = agg
 	return nil
 }

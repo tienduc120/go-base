@@ -36,6 +36,12 @@ func RegisterNote(id NoteID, name string, createdAt time.Time) (Note, error) {
 	return Note{id: id, name: name, createdAt: createdAt}, nil
 }
 
+// RestoreNote rebuilds a stored value for a repository. It was valid when it was saved, so nothing is checked
+// again; new values come only from RegisterNote.
+func RestoreNote(id NoteID, name string, createdAt time.Time) Note {
+	return Note{id: id, name: name, createdAt: createdAt}
+}
+
 func (a Note) ID() NoteID { return a.id }
 
 func (a Note) Name() string { return a.name }

@@ -274,3 +274,84 @@ func TestRunRefusesAServiceNameWithNoQueries(t *testing.T) {
 		t.Errorf("err = %v, want the unknown service named", err)
 	}
 }
+
+// withDiff answers `sqlc diff` with the given exit code and output, and everything else as stack does.
+func withDiff(t *testing.T, compiled map[string]string, exit int, output string) *fakeRunner {
+	t.Helper()
+	runner := stack(t, compiled, nil)
+	inner := runner.handle
+	runner.handle = func(spec proc.Spec) (proc.Result, error) {
+		if spec.Name == "sqlc" && len(spec.Args) > 0 && spec.Args[0] == "diff" {
+			return proc.Result{ExitCode: exit, Output: output}, nil
+		}
+		return inner(spec)
+	}
+	return runner
+}
+
+func addSqlcConfig(t *testing.T, root string) {
+	t.Helper()
+	path := filepath.Join(root, filepath.FromSlash(pgRel), "sqlc.yaml")
+	if err := os.WriteFile(path, []byte("version: \"2\"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRunFlagsGeneratedCodeThatNoLongerMatchesItsQueries(t *testing.T) {
+	t.Parallel()
+
+	root := writeService(t, queryFile)
+	addSqlcConfig(t, root)
+	runner := withDiff(t, map[string]string{
+		"GetNote":    "SELECT id, name FROM notes WHERE id = $1",
+		"ListByName": "SELECT id FROM notes WHERE name = $1 ORDER BY id LIMIT $2",
+	}, 1, "--- a/db/notes.sql.go\n+++ b/db/notes.sql.go\n")
+
+	report, err := dbcheck.Run(t.Context(), runner, dbcheck.Options{Root: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(report.Findings) != 1 {
+		t.Fatalf("findings = %v", report.Findings)
+	}
+	f := report.Findings[0]
+	if f.Rule != dbcheck.RuleGeneratedStale || f.File != pgRel+"/sqlc.yaml" ||
+		!strings.Contains(f.Message, "sqlc generate") {
+		t.Errorf("finding = %+v, want generated-stale on the sqlc.yaml with the command that fixes it", f)
+	}
+}
+
+func TestRunAcceptsGeneratedCodeThatIsCurrent(t *testing.T) {
+	t.Parallel()
+
+	root := writeService(t, queryFile)
+	addSqlcConfig(t, root)
+	runner := withDiff(t, map[string]string{
+		"GetNote":    "SELECT id, name FROM notes WHERE id = $1",
+		"ListByName": "SELECT id FROM notes WHERE name = $1 ORDER BY id LIMIT $2",
+	}, 0, "")
+
+	report, err := dbcheck.Run(t.Context(), runner, dbcheck.Options{Root: root})
+	if err != nil || len(report.Findings) != 0 {
+		t.Errorf("findings = %v, err = %v", report.Findings, err)
+	}
+	if _, ran := runner.find("sqlc diff"); !ran {
+		t.Errorf("a service with a sqlc.yaml must have its generated code compared: %v", runner.commands())
+	}
+}
+
+func TestRunSkipsTheDiffForAServiceWithoutASqlcConfig(t *testing.T) {
+	t.Parallel()
+
+	root := writeService(t, queryFile)
+	runner := withDiff(t, map[string]string{
+		"GetNote":    "SELECT id, name FROM notes WHERE id = $1",
+		"ListByName": "SELECT id FROM notes WHERE name = $1 ORDER BY id LIMIT $2",
+	}, 1, "should not be asked")
+
+	report, err := dbcheck.Run(t.Context(), runner, dbcheck.Options{Root: root})
+	if err != nil || len(report.Findings) != 0 {
+		t.Errorf("findings = %v, err = %v", report.Findings, err)
+	}
+}

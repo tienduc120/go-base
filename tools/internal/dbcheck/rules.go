@@ -21,6 +21,8 @@ const (
 	RuleQueryName       = "query-name"
 	RuleSeqScan         = "seq-scan"
 	RulePlanFailed      = "plan-failed"
+	// RuleGeneratedStale is about a service, not a query, so an agent:allow cannot accept it.
+	RuleGeneratedStale = "generated-stale"
 
 	ruleAllowNeedsReason = "allow-needs-reason"
 	ruleAllowUnknown     = "allow-unknown-rule"

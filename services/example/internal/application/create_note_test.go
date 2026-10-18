@@ -76,3 +76,14 @@ func TestCreateNoteReportsAStorageFailureAsItsOwnError(t *testing.T) {
 		t.Errorf("err = %v, want the storage error and not ErrInvalidCommand: the caller did nothing wrong", err)
 	}
 }
+
+func TestCreateNoteKeepsAnAlreadyExistsErrorRecognisable(t *testing.T) {
+	t.Parallel()
+
+	usecase := application.NewCreateNote(&fakeRepository{err: application.ErrAlreadyExists}, fixedClock{})
+
+	_, err := usecase.Execute(t.Context(), application.CreateNoteCommand{ID: "id-1", Name: "first"})
+	if !errors.Is(err, application.ErrAlreadyExists) || errors.Is(err, application.ErrInvalidCommand) {
+		t.Errorf("err = %v, want ErrAlreadyExists, which is a conflict and not a malformed command", err)
+	}
+}
