@@ -41,7 +41,7 @@ Two modules joined by `go.work`: the root module (services, platform, contracts)
 
 ## Hard rules
 
-- **Test first.** No production code without a test that failed first, for the right reason.
+- **Test first.** No production code without a test that failed first, for the right reason. Follow the `writing-go-tests` skill for layout and what each layer tests with.
 - **Start a service with the generator.** `agentctl new service` gives a layout that already passes every gate; `services/example` is its generated witness, so change the templates in `tools/internal/scaffold/templates` and regenerate it, never edit it (ADR-0010).
 - **SQL goes in sqlc query files and passes `agentctl db check`.** Queries live in `services/<name>/internal/infrastructure/postgres/queries`, migrations beside them as forward-only `NNNN_name.sql`. Fix a finding at its cause; accepting one (`-- agent:allow <rule>: <why>`) is debt, so tell the user. Follow the `writing-queries` skill (ADR-0011).
 - **Open a database pool only with `platform/postgres.Connect`.** It refuses a zero timeout and sets the server-side statement, lock, and idle-in-transaction limits. A use-case test asserts `postgres.WithBudget(...).Err()` is nil, so a query in a loop fails the test (ADR-0012). Tests that need a database use `platform/postgres/postgrestest` and run with `agentctl db test`.
